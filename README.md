@@ -1,5 +1,4 @@
-# CSD3130/CSD3131_Assignments
+# CSD3130/CSD3131 Main Branch
 
 ## Assignment 1 & 2 are in different branches.
-
-### The main branch is for backup copies.
+This main branch is for backup copies of the assignments
