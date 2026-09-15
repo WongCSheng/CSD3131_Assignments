@@ -17,6 +17,8 @@
 // https://www.geeksforgeeks.org/dsa/heap-sort/
 // https://stackoverflow.com/questions/26491137/number-of-comparisons-for-heap-sort
 
+// https://www.geeksforgeeks.org/dsa/radix-sort/
+
 // https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
 
 // Radix Sort
@@ -88,6 +90,20 @@ void HeapSort(std::vector<T>& arr) {
 }
 
 // -------------- ALGORITHM 2: Radix Sort --------------
+template <typename T>
+T GetMaxInArray(std::vector<T>& arr) {
+    T greatestFound = arr[0];
+    for (int i = 1; i < (int)arr.size(); i++) {
+        if (arr[i] > greatestFound) greatestFound = arr[i];
+    }
+    return greatestFound;
+}
+
+template <typename T>
+void CountSort() {
+    
+}
+
 template <typename T>
 void RadixSort(std::vector<T>& arr) {
     
