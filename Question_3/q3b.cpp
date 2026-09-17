@@ -6,6 +6,12 @@
 #include <cmath>
 #include <random>
 
+#include "nlohmann_json.h"
+#include "vega_lite_plot.h"
+
+// Base structure of sorts adapted from GeeksForGeeks
+// nlohmann json and vega lite plot implementation taken from csd2183 example
+
 // References:
 // https://www.geeksforgeeks.org/cpp/how-to-make-a-countdown-timer-in-cpp/
 // https://www.geeksforgeeks.org/dsa/understanding-time-complexity-simple-examples/
@@ -75,7 +81,7 @@ void Heapify(std::vector<T>& arr, int n, int i){
 }
 
 template <typename T>
-void HeapSort(std::vector<T>& arr) {
+void HeapSort(std::vector<T> arr, std::vector<T>& output) {
     int n = arr.size();
 
     // Build heap, rearrange vector
@@ -91,6 +97,8 @@ void HeapSort(std::vector<T>& arr) {
         // Call max heapify on the reduced heap
         Heapify(arr, i, 0);
     }
+
+    output = arr;
 }
 
 // -------------- ALGORITHM 2: Radix Sort --------------
@@ -109,8 +117,14 @@ void CountSort() {
 }
 
 template <typename T>
-void RadixSort(std::vector<T>& arr) {
-    
+void RadixSort(std::vector<T> arr, std::vector<T>& output) {
+    T max = GetMaxInArray(arr);
+
+    // for (int exp = 1; m / exp > 0; exp *= 10) {
+    //     countSort(arr, n, exp);
+    // }
+
+    output = arr;
 }
 
 // -------------- TEST CASES HELPERS --------------
@@ -135,6 +149,10 @@ void TestCasesIntegersOrderReversed(std::vector<int>& arr, int num = 100, int lo
     for (int i = upperRange, count = 0; i > lowerRange && count < num; i--, count++) {
         arr.push_back(i);
     }
+}
+
+void TestCasesString(std::vector<std::string>& arr) {
+
 }
 
 // -------------- VECTOR-RELATED HELPERS --------------
@@ -174,6 +192,7 @@ float DisplayComparisonOne(std::vector<T>& arr, int sortType) {
 // -------------- MAIN --------------
 int main() {
     std::vector<int> testDataArray; // only initialise float to demonstrate limitation case
+    std::vector<int> outputArrayInt;
 
     std::string userInput;
 
@@ -183,6 +202,7 @@ int main() {
         userInput.clear();
         comparisons = 0;
         ClearArray(testDataArray);
+        ClearArray(outputArrayInt);
 
         std::cout << "\n========= INSERT TITLE HERE =========\n";
         std::cout << "OPTIONS:\n";
@@ -209,7 +229,10 @@ int main() {
 
             ClearArray(testDataArray);
             runProgram = false;
+        // CASE 1: Heap vs Radix, integer, N
         } else if (userInput == "1") {
+            TestCasesIntegers(testDataArray, 100, 0, 100);
+        } else if (userInput == "2") {
             //testDataArray = std::vector<int>{10, 56, 3, 23, 90, 22, 34, 18, 90};
             //testDataArray = std::vector<int>{90, 80, 70, 60, 50, 40, 30, 12, 1};
             //TestCasesIntegers(testDataArray, 42, 0, 100);
@@ -217,16 +240,23 @@ int main() {
             TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
 
             DisplayArray(testDataArray);
-            HeapSort(testDataArray);
-            DisplayArray(testDataArray);
-            DisplayComparisonOne(testDataArray, 0);
+            HeapSort(testDataArray, outputArrayInt);
+            DisplayArray(outputArrayInt);
+            DisplayComparisonOne(outputArrayInt, 0);
 
             std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+            std::vector<std::string> outputArrayInt2;
             DisplayArray(testDataArray2);
-            HeapSort(testDataArray2);
-            DisplayArray(testDataArray2);
-            DisplayComparisonOne(testDataArray2, 0);
+            HeapSort(testDataArray2, outputArrayInt2);
+            DisplayArray(outputArrayInt2);
+            DisplayComparisonOne(outputArrayInt2, 0);
         }
+
+        // Generate Vega-Lite JSON specification
+        //nlohmann::json spec = generate_vega_lite_spec(sizes, times1, times2, times3);
+
+        // Generate HTML file
+        //generate_html(spec, "bubble_sort_timings.html");
     }
 
     return 0;
