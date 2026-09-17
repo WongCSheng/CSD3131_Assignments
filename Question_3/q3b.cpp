@@ -29,6 +29,10 @@
 
 // test cases: integer only, maybe float as a bonus limitation for radix
 
+// to do:
+// heap - show diff data types, like float, int, string
+// radix - show string, int only
+
 // -------------- GLOBALS --------------
 int comparisons = 0;
 
@@ -216,6 +220,12 @@ int main() {
             HeapSort(testDataArray);
             DisplayArray(testDataArray);
             DisplayComparisonOne(testDataArray, 0);
+
+            std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+            DisplayArray(testDataArray2);
+            HeapSort(testDataArray2);
+            DisplayArray(testDataArray2);
+            DisplayComparisonOne(testDataArray2, 0);
         }
     }
 
