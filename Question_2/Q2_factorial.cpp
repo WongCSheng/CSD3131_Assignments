@@ -1,14 +1,8 @@
 #include <vector>
 #include <string>
+#include <iostream>
 
-int main()
-{
-    std::vector<char> carr {'a','b','c'};
-    std::vector<std::string> outputs{};
-
-}
-
-std::vector<std::string> permutations (const std::vector<char>& v, int pos)
+std::vector<std::string> permutations (const std::vector<char>& v, size_t pos)
 {
     std::vector<std::string> perms{};
 
@@ -25,10 +19,40 @@ std::vector<std::string> permutations (const std::vector<char>& v, int pos)
     std::vector<char> remainder = v;
     remainder.erase(remainder.begin()+pos);
 
-    for (int i=0; i < v.size(); i++)
+    for (size_t i=0; i < remainder.size(); i++)
     {
-        std::string start{};
-        start += v[i];
+        std::vector<std::string> subperm;
+        subperm = permutations(remainder, i);
+
+        for (std::string sp : subperm)
+        {
+            perms.push_back(v[pos]+sp);
+        }
 
     }
+    return perms;
 }
+
+int main()
+{
+    std::vector<char> carr {'a','b','c','d'};
+    std::vector<std::string> outputs{};
+
+    for (size_t i=0; i < carr.size(); i++)
+    {
+        std::vector<std::string> perms = permutations(carr,i);
+        outputs.reserve(outputs.size() + perms.size());
+        outputs.insert(outputs.end(), perms.begin(), perms.end());
+    }
+
+    std::cout << "number of permutations: " << outputs.size() << std::endl;
+    for (std::string s : outputs)
+    {
+        std::cout << s << " | ";
+    }
+    std::cout <<std::endl;
+
+
+    return 0;
+}
+
