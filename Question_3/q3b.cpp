@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <typeinfo>
 
 #include "nlohmann_json.h"
 #include "vega_lite_plot.h"
@@ -26,6 +27,7 @@
 // https://www.geeksforgeeks.org/dsa/radix-sort/
 
 // https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
+// https://dev.to/nitinsonicoder/radix-sort-1igp
 
 // Radix Sort
 // O(n * k), number of digits in largest number
@@ -104,25 +106,57 @@ void HeapSort(std::vector<T> arr, std::vector<T>& output) {
 // -------------- ALGORITHM 2: Radix Sort --------------
 template <typename T>
 T GetMaxInArray(std::vector<T>& arr) {
-    T greatestFound = arr[0];
+    T greatestFound = (typeid(T) == typeid(std::string) ? arr[0].size() : arr[0]);
+
     for (int i = 1; i < (int)arr.size(); i++) {
-        if (arr[i] > greatestFound) greatestFound = arr[i];
+        if (typeid(T) == typeid(std::string)) {
+            if (arr[i].size() > greatestFound) greatestFound = arr[i].size();
+        } else {
+            if (arr[i] > greatestFound) greatestFound = arr[i];
+        }
     }
     return greatestFound;
 }
 
 template <typename T>
-void CountSort() {
-    
+void CountSort(std::vector<T>& arr, int exp) {
+    int n = (int)arr.size();
+
+    // Output array
+    int output[n];
+    int i, count[10] = { 0 };
+
+    // Store count of occurrences
+    // in count[]
+    for (i = 0; i < n; i++)
+        count[(arr[i] / exp) % 10]++;
+
+    // Change count[i] so that count[i]
+    // now contains actual position
+    // of this digit in output[]
+    for (i = 1; i < 10; i++)
+        count[i] += count[i - 1];
+
+    // Build the output array
+    for (i = n - 1; i >= 0; i--) {
+        output[count[(arr[i] / exp) % 10] - 1] = arr[i];
+        count[(arr[i] / exp) % 10]--;
+    }
+
+    // Copy the output array to arr[],
+    // so that arr[] now contains sorted
+    // numbers according to current digit
+    for (i = 0; i < n; i++)
+        arr[i] = output[i];
 }
 
 template <typename T>
 void RadixSort(std::vector<T> arr, std::vector<T>& output) {
-    T max = GetMaxInArray(arr);
+    T max = GetMaxInArray<T>(arr);
 
-    // for (int exp = 1; m / exp > 0; exp *= 10) {
-    //     countSort(arr, n, exp);
-    // }
+    for (int exp = 1; max / exp > 0; exp *= 10) {
+        CountSort(arr, exp);
+    }
 
     output = arr;
 }
@@ -250,6 +284,21 @@ int main() {
             HeapSort(testDataArray2, outputArrayInt2);
             DisplayArray(outputArrayInt2);
             DisplayComparisonOne(outputArrayInt2, 0);
+        } else if (userInput == "3") {
+            //TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
+            TestCasesIntegers(testDataArray, 42, 0, 100);
+
+            DisplayArray(testDataArray);
+            RadixSort(testDataArray, outputArrayInt);
+            DisplayArray(outputArrayInt);
+            DisplayComparisonOne(outputArrayInt, 1);
+
+            std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+            std::vector<std::string> outputArrayInt2;
+            DisplayArray(testDataArray2);
+            RadixSort(testDataArray2, outputArrayInt2);
+            DisplayArray(outputArrayInt2);
+            DisplayComparisonOne(outputArrayInt2, 1);
         }
 
         // Generate Vega-Lite JSON specification
