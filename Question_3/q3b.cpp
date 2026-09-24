@@ -28,6 +28,7 @@
 
 // https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
 // https://dev.to/nitinsonicoder/radix-sort-1igp
+// https://stackoverflow.com/questions/32543683/radix-sort-array-of-strings
 
 // Radix Sort
 // O(n * k), number of digits in largest number
@@ -43,6 +44,7 @@
 
 // -------------- GLOBALS --------------
 int comparisons = 0;
+int passes = 0;
 
 std::random_device rng;
 std::mt19937 generator(rng()); // generator
@@ -104,16 +106,18 @@ void HeapSort(std::vector<T> arr, std::vector<T>& output) {
 }
 
 // -------------- ALGORITHM 2: Radix Sort --------------
-template <typename T>
-T GetMaxInArray(std::vector<T>& arr) {
-    T greatestFound = (typeid(T) == typeid(std::string) ? arr[0].size() : arr[0]);
-
+int GetMaxInArray(std::vector<int>& arr) {
+    int greatestFound = arr[0];
     for (int i = 1; i < (int)arr.size(); i++) {
-        if (typeid(T) == typeid(std::string)) {
-            if (arr[i].size() > greatestFound) greatestFound = arr[i].size();
-        } else {
-            if (arr[i] > greatestFound) greatestFound = arr[i];
-        }
+        if (arr[i] > greatestFound) greatestFound = arr[i];
+    }
+    return greatestFound;
+}
+
+int GetMaxInArray(std::vector<std::string>& arr) {
+    int greatestFound = (int)arr[0].length();
+    for (int i = 1; i < (int)arr.size(); i++) {
+        if ((int)arr[i].length() > greatestFound) greatestFound = (int)arr[i].length();
     }
     return greatestFound;
 }
@@ -128,8 +132,10 @@ void CountSort(std::vector<T>& arr, int exp) {
 
     // Store count of occurrences
     // in count[]
-    for (i = 0; i < n; i++)
+    for (i = 0; i < n; i++) {
         count[(arr[i] / exp) % 10]++;
+        comparisons++;
+    }
 
     // Change count[i] so that count[i]
     // now contains actual position
@@ -141,6 +147,7 @@ void CountSort(std::vector<T>& arr, int exp) {
     for (i = n - 1; i >= 0; i--) {
         output[count[(arr[i] / exp) % 10] - 1] = arr[i];
         count[(arr[i] / exp) % 10]--;
+        comparisons++;
     }
 
     // Copy the output array to arr[],
@@ -150,12 +157,51 @@ void CountSort(std::vector<T>& arr, int exp) {
         arr[i] = output[i];
 }
 
+template<>
+void CountSort(std::vector<std::string>& arr, int exp) {
+    int size = (int)arr.size();
+
+    std::vector<std::string> arrCopy(size);
+    std::vector<int> characterFrequency(257, 0);
+
+    // count occurrences (using +1 offset so "no char at position k" maps to index 0)
+    for (size_t j = 0; j < size; j++) {
+        size_t idx = (exp < arr[j].size()) ? (size_t)(unsigned char)arr[j][exp] + 1 : 0;
+        characterFrequency[idx]++;
+        comparisons++;
+    }
+
+    // prefix sums
+    for (int f = 1; f < 257; f++) {
+        characterFrequency[f] += characterFrequency[f - 1];
+    }
+
+    // build sorted output (stable, iterate backwards)
+    for (int r = (int)size - 1; r >= 0; r--) {
+        size_t idx = (exp < arr[r].size()) ? (size_t)(unsigned char)arr[r][ exp] + 1 : 0;
+        arrCopy[characterFrequency[idx] - 1] = arr[r];
+        characterFrequency[idx]--;
+        comparisons++;
+    }
+
+    // copy back
+    arr = arrCopy;
+}
+
 template <typename T>
 void RadixSort(std::vector<T> arr, std::vector<T>& output) {
-    T max = GetMaxInArray<T>(arr);
+    int max = GetMaxInArray(arr);
 
-    for (int exp = 1; max / exp > 0; exp *= 10) {
-        CountSort(arr, exp);
+    if (typeid(T) == typeid(std::string)) {
+        for (int digit = max; digit > 0; digit--){
+            CountSort(arr, digit - 1);
+            passes++;
+        }
+    } else {
+        for (int exp = 1; max / exp > 0; exp *= 10) {
+            CountSort(arr, exp);
+            passes++;
+        }
     }
 
     output = arr;
@@ -171,6 +217,10 @@ void TestCasesIntegers(std::vector<int>& arr, int num = 100, int lowerRange = -1
     for (int i = 0; i < num; i++) {
         arr.push_back((int)Mapper(-1.0, 1.0, lowerRange, upperRange, distribution(generator)));
     }
+
+    // int actualMin = *std::min_element(arr.begin(), arr.end());
+    // int actualMax = *std::max_element(arr.begin(), arr.end());
+    // std::cout << "n=" << arr.size() << " actual range: [" << actualMin << ", " << actualMax << "]\n";
 }
 
 void TestCasesIntegersOrder(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
@@ -214,13 +264,48 @@ template <typename T>
 float DisplayComparisonOne(std::vector<T>& arr, int sortType) {
     int n = arr.size();
     // 0 - n log n, 1 - n * k
-    float bigO = (sortType == 0 ? n * std::log2f(n) : n); // n * k
+    float bigO = (sortType == 0 ? n * std::log2f(n) : n * passes); // n * k
 
     float compBigORatio = (float)comparisons / bigO;
 
     std::cout << "Ratio: " << compBigORatio << std::endl;
 
     return compBigORatio; // just in case
+}
+
+// -------------- BENCHMARKING --------------
+struct BenchResult {
+    int n;
+    int k;              // number of passes for radix
+    long long comparisons;
+};
+
+void RunBenchmarks() {
+    std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000};
+
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+
+    for (int n : sizes) {
+        comparisons = passes = 0;
+
+        std::vector<int> benchmarkArr;
+        TestCasesIntegers(benchmarkArr, n, 100000, 999999);
+
+        std::vector<int> sorted;
+
+        RadixSort(benchmarkArr, sorted);
+
+        float nk_ratio  = (float)comparisons / ((float)n * passes);
+        float nlogn_ratio = (float)comparisons / ((float)n * std::log2f((float)n));
+
+        std::cout << std::setw(10) << n
+                  << std::setw(15) << comparisons
+                  << std::setw(15) << nk_ratio
+                  << std::setw(15) << nlogn_ratio << std::endl;
+    }
 }
 
 // -------------- MAIN --------------
@@ -235,6 +320,7 @@ int main() {
         // reset user input, comparison, testdataarray at every loop start
         userInput.clear();
         comparisons = 0;
+        passes = 0;
         ClearArray(testDataArray);
         ClearArray(outputArrayInt);
 
@@ -299,6 +385,8 @@ int main() {
             RadixSort(testDataArray2, outputArrayInt2);
             DisplayArray(outputArrayInt2);
             DisplayComparisonOne(outputArrayInt2, 1);
+        } else if (userInput == "4") {
+            RunBenchmarks();
         }
 
         // Generate Vega-Lite JSON specification
