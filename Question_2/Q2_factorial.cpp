@@ -1,58 +1,53 @@
-#include <vector>
-#include <string>
 #include <iostream>
+#include <vector>
 
-std::vector<std::string> permutations (const std::vector<char>& v, size_t pos)
+// heaps algorithm implementation for O(N!) algorithm demo
+// build with  g++ Q2_factorial.cpp -o Q2fac
+// then do ./Q2fac
+
+void printPerms(const std::vector<int>& v)
 {
-    std::vector<std::string> perms{};
+    for (int i : v) std::cout << i;
+    std::cout << std::endl;
+}
 
-    if (v.empty())
-    {
-        return perms;
+void heapPerm(std::vector<int>& v, int size, int n)
+{
+    //trace calls
+    std::cout << "F({";
+    for (int i : v) std::cout << i;
+    std::cout << "}, " << size << "," << n << ")" << std::endl;
+
+    // if size is 1, 
+    // print permutation
+    if (size == 1) {
+        std::cout << "Permutation obtained: ";
+        for (int i : v) std::cout << i;
+        std::cout << std::endl;
+        return;
     }
-    if (v.size() == 1)
+
+
+    for (int i =0; i < size; i++)
     {
-        perms.push_back(std::string{v[0]});
-        return perms;
+        heapPerm(v, size - 1, n);
+
+        // if size is odd,
+        // swap first and last elements
+        if (size % 2 == 1)
+            std::swap(v[0], v[size-1]);
+
+        // if size is even,
+        // swap at pos i and last
+        else
+            std::swap(v[i], v[size-1]);
     }
-
-    std::vector<char> remainder = v;
-    remainder.erase(remainder.begin()+pos);
-
-    for (size_t i=0; i < remainder.size(); i++)
-    {
-        std::vector<std::string> subperm;
-        subperm = permutations(remainder, i);
-
-        for (std::string sp : subperm)
-        {
-            perms.push_back(v[pos]+sp);
-        }
-
-    }
-    return perms;
 }
 
 int main()
 {
-    std::vector<char> carr {'a','b','c','d'};
-    std::vector<std::string> outputs{};
-
-    for (size_t i=0; i < carr.size(); i++)
-    {
-        std::vector<std::string> perms = permutations(carr,i);
-        outputs.reserve(outputs.size() + perms.size());
-        outputs.insert(outputs.end(), perms.begin(), perms.end());
-    }
-
-    std::cout << "number of permutations: " << outputs.size() << std::endl;
-    for (std::string s : outputs)
-    {
-        std::cout << s << " | ";
-    }
-    std::cout <<std::endl;
-
-
+    std::vector<int> v = { 1, 2, 3, 4 };
+    int n = v.size();
+    heapPerm(v, n, n);
     return 0;
 }
-
