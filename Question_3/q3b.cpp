@@ -6,12 +6,12 @@
 #include <cmath>
 #include <random>
 #include <typeinfo>
+#include <iomanip>
 
-#include "nlohmann_json.h"
-#include "vega_lite_plot.h"
+//#include "nlohmann_json.h"
+//#include "vega_lite_plot.h"
 
 // Base structure of sorts adapted from GeeksForGeeks
-// nlohmann json and vega lite plot implementation taken from csd2183 example
 
 // References:
 // https://www.geeksforgeeks.org/cpp/how-to-make-a-countdown-timer-in-cpp/
@@ -64,15 +64,15 @@ void Heapify(std::vector<T>& arr, int n, int i){
     int r = 2 * i + 2;
 
     // If left child is larger than root
-    if (l < n && arr[l] > arr[largest]) {
+    if (l < n) {
         comparisons++;
-        largest = l;
+        if (arr[l] > arr[largest]) largest = l;
     }
 
     // If right child is larger than largest so far
-    if (r < n && arr[r] > arr[largest]) {
+    if (r < n) {
         comparisons++;
-        largest = r;
+        if (arr[r] > arr[largest]) largest = r;
     }
 
     // If largest is not root
@@ -86,6 +86,7 @@ void Heapify(std::vector<T>& arr, int n, int i){
 
 template <typename T>
 void HeapSort(std::vector<T> arr, std::vector<T>& output) {
+    if (arr.empty()) { output = arr; return; }
     int n = arr.size();
 
     // Build heap, rearrange vector
@@ -127,7 +128,7 @@ void CountSort(std::vector<T>& arr, int exp) {
     int n = (int)arr.size();
 
     // Output array
-    int output[n];
+    std::vector<int> output(n);
     int i, count[10] = { 0 };
 
     // Store count of occurrences
@@ -190,6 +191,7 @@ void CountSort(std::vector<std::string>& arr, int exp) {
 
 template <typename T>
 void RadixSort(std::vector<T> arr, std::vector<T>& output) {
+    if (arr.empty()) { output = arr; return; }
     int max = GetMaxInArray(arr);
 
     if (typeid(T) == typeid(std::string)) {
@@ -207,20 +209,15 @@ void RadixSort(std::vector<T> arr, std::vector<T>& output) {
     output = arr;
 }
 
-// -------------- TEST CASES HELPERS --------------
+// -------------- TEST CASES GENERATION --------------
 float Mapper(float inputStart, float inputEnd, float outputStart, float outputEnd, float input) {
     return outputStart + ((outputEnd - outputStart) / (inputEnd - inputStart)) * (input - inputStart);
 }
 
-// probably would just generate test cases on the fly...?
 void TestCasesIntegers(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
     for (int i = 0; i < num; i++) {
         arr.push_back((int)Mapper(-1.0, 1.0, lowerRange, upperRange, distribution(generator)));
     }
-
-    // int actualMin = *std::min_element(arr.begin(), arr.end());
-    // int actualMax = *std::max_element(arr.begin(), arr.end());
-    // std::cout << "n=" << arr.size() << " actual range: [" << actualMin << ", " << actualMax << "]\n";
 }
 
 void TestCasesIntegersOrder(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
@@ -235,84 +232,314 @@ void TestCasesIntegersOrderReversed(std::vector<int>& arr, int num = 100, int lo
     }
 }
 
-void TestCasesString(std::vector<std::string>& arr) {
+void TestCasesVariableStrings(std::vector<std::string>& arr, int num = 100, int minLen = 1, int maxLen = 10) {
+    for (int i = 0; i < num; i++) {
+        int len = (int)Mapper(-1.0, 1.0, minLen, maxLen, distribution(generator));
+        std::string s;
+        for (int j = 0; j < len; j++) {
+            int charCode = (int)Mapper(-1.0, 1.0, (int)'a', (int)'z', distribution(generator));
+            s += (char)charCode;
+        }
+        arr.push_back(s);
+    }
+}
 
+void TestCasesSameInteger(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
+    int number = (int)Mapper(-1.0, 1.0, lowerRange, upperRange, distribution(generator));
+    for (int i = 0; i < num; i++) {
+        arr.push_back(number);
+    }
+}
+
+void TestCasesSameString(std::vector<std::string>& arr, int num = 100, int minLen = 1, int maxLen = 10) {
+    int len = (int)Mapper(-1.0, 1.0, minLen, maxLen, distribution(generator));
+    std::string s;
+    for (int j = 0; j < len; j++) {
+        int charCode = (int)Mapper(-1.0, 1.0, (int)'a', (int)'z', distribution(generator));
+        s += (char)charCode;
+    }
+
+    for (int i = 0; i < num; i++) {
+        arr.push_back(s);
+    }
 }
 
 // -------------- VECTOR-RELATED HELPERS --------------
-template <typename T>
-bool PopulateArray(std::vector<T>& arr, std::string filepath) {
-    
-}
-
 template <typename T>
 void ClearArray(std::vector<T>& arr) {
     arr.clear();
 }
 
 template <typename T>
-void DisplayArray(std::vector<T>& arr) {
-    std::cout << " -- CURRENT ARRAY CONTENTS --\n";
+void DisplayArray(std::vector<T>& arr, std::string header = " -- CURRENT ARRAY CONTENTS --\n") {
+    std::cout << header;
     for (T& var : arr) {
         std::cout << var << " ";
     }
     std::cout << std::endl;
 }
 
-// -------------- OUTPUT-RELATED HELPERS --------------
-template <typename T>
-float DisplayComparisonOne(std::vector<T>& arr, int sortType) {
-    int n = arr.size();
-    // 0 - n log n, 1 - n * k
-    float bigO = (sortType == 0 ? n * std::log2f(n) : n * passes); // n * k
-
-    float compBigORatio = (float)comparisons / bigO;
-
-    std::cout << "Ratio: " << compBigORatio << std::endl;
-
-    return compBigORatio; // just in case
-}
-
-// -------------- BENCHMARKING --------------
-struct BenchResult {
-    int n;
-    int k;              // number of passes for radix
-    long long comparisons;
+// -------------- TEST CASES --------------
+struct TestResult {
+    int n = 0;
+    int comparisons = 0;
+    int passes = 0;
+    float nk_ratio = 0;
+    float nlogn_ratio = 0;
+    float n_ratio = 0;
+    int chosen_int = 0;
 };
 
-void RunBenchmarks() {
-    std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000};
+float FindNK(int n) {
+    return (float)comparisons / ((float)n * passes);
+}
 
-    std::cout << std::left << std::setw(10) << "n"
-              << std::setw(15) << "comparisons"
-              << std::setw(15) << "comp/(n*k)"
-              << std::setw(15) << "comp/(n log n)" << std::endl;
+float FindNLogN(int n) {
+    return (float)comparisons / ((float)n * std::log2f((float)n));
+}
 
+float FindN(int n) {
+    return (float)comparisons / ((float)n);
+}
+
+void TestOne() {
+    std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000, 10000000};
+    std::vector<TestResult> resultsHeap;
+    std::vector<TestResult> resultsRadix;
+
+    std::cout << "TEST 1: HEAP VS RADIX BENCHMARKING: N = 100 to 10000000\n";
     for (int n : sizes) {
-        comparisons = passes = 0;
+        comparisons = passes = 0; // reset
 
         std::vector<int> benchmarkArr;
         TestCasesIntegers(benchmarkArr, n, 100000, 999999);
 
-        std::vector<int> sorted;
+        std::vector<int> sortedHeap;
+        std::vector<int> sortedRadix;
 
-        RadixSort(benchmarkArr, sorted);
+        HeapSort(benchmarkArr, sortedHeap);
+        resultsHeap.push_back(TestResult{n, comparisons, passes, FindNK(n), FindNLogN(n)});
 
-        float nk_ratio  = (float)comparisons / ((float)n * passes);
-        float nlogn_ratio = (float)comparisons / ((float)n * std::log2f((float)n));
+        comparisons = passes = 0; // reset
+        RadixSort(benchmarkArr, sortedRadix);
+        resultsRadix.push_back({n, comparisons, passes, FindNK(n), FindNLogN(n)});
+    }
 
-        std::cout << std::setw(10) << n
-                  << std::setw(15) << comparisons
-                  << std::setw(15) << nk_ratio
-                  << std::setw(15) << nlogn_ratio << std::endl;
+    std::cout << "======== HEAP SORT ========\n";
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+    for (TestResult tr : resultsHeap) {
+        std::cout << std::left << std::setw(10) << tr.n
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nk_ratio
+              << std::setw(15) << tr.nlogn_ratio << std::endl;
+    }
+
+    std::cout << std::endl;
+    std::cout << "======== RADIX SORT ========\n";
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+    for (TestResult tr : resultsRadix) {
+        std::cout << std::left << std::setw(10) << tr.n
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nk_ratio
+              << std::setw(15) << tr.nlogn_ratio << std::endl;
+    }
+}
+
+void TestTwo() {
+    std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000};
+    std::vector<TestResult> resultsHeap;
+    std::vector<TestResult> resultsRadix;
+
+    std::cout << "TEST 2: HEAP VS RADIX BENCHMARKING: N = 100 to 1000000\n";
+    for (int n : sizes) {
+        comparisons = passes = 0; // reset
+
+        std::vector<std::string> benchmarkArr;
+        TestCasesVariableStrings(benchmarkArr, n, 6, 6);
+
+        std::vector<std::string> sortedHeap;
+        std::vector<std::string> sortedRadix;
+
+        HeapSort(benchmarkArr, sortedHeap);
+        resultsHeap.push_back(TestResult{n, comparisons, passes, FindNK(n), FindNLogN(n)});
+
+        comparisons = passes = 0; // reset
+        RadixSort(benchmarkArr, sortedRadix);
+        resultsRadix.push_back({n, comparisons, passes, FindNK(n), FindNLogN(n)});
+    }
+
+    std::cout << "======== HEAP SORT ========\n";
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+    for (TestResult tr : resultsHeap) {
+        std::cout << std::left << std::setw(10) << tr.n
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nk_ratio
+              << std::setw(15) << tr.nlogn_ratio << std::endl;
+    }
+
+    std::cout << std::endl;
+    std::cout << "======== RADIX SORT ========\n";
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+    for (TestResult tr : resultsRadix) {
+        std::cout << std::left << std::setw(10) << tr.n
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nk_ratio
+              << std::setw(15) << tr.nlogn_ratio << std::endl;
+    }
+}
+
+void TestThree() {
+    std::cout << "TEST 3: CORRECTNESS\n";
+
+    // empty, single. sorted, reversed, dupes, negatives
+    std::vector<int> tests = {0, 1, 2, 3, 4, 5};
+    for (int test : tests) {
+        std::vector<int> testArray;
+        switch (test) {
+            case 0:
+                // nothing to do. it is empty
+                std::cout << "== 3A - EMPTY ARRAY ==\n";
+                break;
+            case 1:
+                std::cout << "== 3B - SINGLE ELEMENT ==\n";
+                TestCasesIntegers(testArray, 1, 0, 100);
+                break;
+            case 2:
+                std::cout << "== 3C - SORTED ==\n";
+                TestCasesIntegersOrder(testArray, 30, 0, 100);
+                break;
+            case 3:
+                std::cout << "== 3D - SORTED REVERSED ==\n";
+                TestCasesIntegersOrderReversed(testArray, 30, 0, 100);
+                break;
+            case 4:
+                std::cout << "== 3E - DUPLICATES ==\n";
+                TestCasesSameInteger(testArray, 30, 0, 100);
+                break;
+            case 5:
+                std::cout << "== 3F - NEGATIVES ==\n";
+                TestCasesIntegers(testArray, 30, -100, -1);
+                break;
+            default: break;
+        }
+
+        DisplayArray(testArray, "INITIAL ARRAY: ");
+
+        std::vector<int> heap;
+        std::vector<int> radix;
+
+        HeapSort(testArray, heap);
+        RadixSort(testArray, radix);
+
+        DisplayArray(heap, "HEAP: ");
+        DisplayArray(radix, "RADIX: ");
+        std::cout << std::endl;
+    }
+}
+
+void TestFour() {
+    std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000, 10000000};
+    std::vector<TestResult> resultsRadixConst;
+    std::vector<TestResult> resultsRadixVariable;
+
+    std::cout << "TEST 4: RADIX SORT DEGRADATION\n";
+    for (int n : sizes) {
+        comparisons = passes = 0; // reset
+
+        std::vector<int> benchmarkArr1;
+        TestCasesIntegers(benchmarkArr1, n, 100000, 999999);
+
+        std::vector<int> benchmarkArr2;
+        TestCasesIntegers(benchmarkArr2, n, 0, n - 1);
+
+        std::vector<int> sortedRadix1;
+        std::vector<int> sortedRadix2;
+
+        RadixSort(benchmarkArr1, sortedRadix1);
+        resultsRadixConst.push_back(TestResult{n, comparisons, passes, FindNK(n), FindNLogN(n)});
+
+        comparisons = passes = 0; // reset
+        RadixSort(benchmarkArr2, sortedRadix2);
+        resultsRadixVariable.push_back({n, comparisons, passes, FindNK(n), FindNLogN(n)});
+    }
+
+    std::cout << "======== RADIX SORT (K = 6, CONSTANT) ========\n";
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "k"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+    for (TestResult tr : resultsRadixConst) {
+        std::cout << std::left << std::setw(10) << tr.n
+              << std::setw(15) << tr.passes
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nk_ratio
+              << std::setw(15) << tr.nlogn_ratio << std::endl;
+    }
+
+    std::cout << std::endl;
+    std::cout << "======== RADIX SORT (K VARIABLE) ========\n";
+    std::cout << std::left << std::setw(10) << "n"
+              << std::setw(15) << "k"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n*k)"
+              << std::setw(15) << "comp/(n log n)" << std::endl;
+    for (TestResult tr : resultsRadixVariable) {
+        std::cout << std::left << std::setw(10) << tr.n
+              << std::setw(15) << tr.passes
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nk_ratio
+              << std::setw(15) << tr.nlogn_ratio << std::endl;
+    }
+}
+
+void TestFive() {
+    std::cout << "TEST 5: HEAP SORT SPECIAL CASE (EQUAL KEYS)\n";
+
+    std::vector<int> sizes = {100, 1000, 10000, 100000};
+    std::vector<TestResult> resultsHeap;
+
+    for (int n : sizes) {
+        comparisons = passes = 0; // reset
+
+        std::vector<int> benchmarkArr;
+        TestCasesSameInteger(benchmarkArr, n, 1, 100);
+
+        std::vector<int> sortedHeap;
+
+        HeapSort(benchmarkArr, sortedHeap);
+        resultsHeap.push_back(TestResult{n, comparisons, passes, FindNK(n), FindNLogN(n), FindN(n), sortedHeap[0]});
+    }
+
+    std::cout << "======== HEAP SORT ========\n";
+    std::cout << std::left << std::setw(15) << "chosen int"
+              << std::setw(15) << "n"
+              << std::setw(15) << "comparisons"
+              << std::setw(15) << "comp/(n log n)"
+              << std::setw(15) << "comp/(n)" << std::endl;
+    for (TestResult tr : resultsHeap) {
+        std::cout << std::left << std::setw(15)  << tr.chosen_int
+              << std::setw(15) << tr.n
+              << std::setw(15) << tr.comparisons
+              << std::setw(15) << tr.nlogn_ratio
+              << std::setw(15) << tr.n_ratio << std::endl;
     }
 }
 
 // -------------- MAIN --------------
 int main() {
-    std::vector<int> testDataArray; // only initialise float to demonstrate limitation case
-    std::vector<int> outputArrayInt;
-
     std::string userInput;
 
     bool runProgram = true;
@@ -321,12 +548,14 @@ int main() {
         userInput.clear();
         comparisons = 0;
         passes = 0;
-        ClearArray(testDataArray);
-        ClearArray(outputArrayInt);
 
-        std::cout << "\n========= INSERT TITLE HERE =========\n";
+        std::cout << "\n========= CSD3131 ASSIGNMENT 1: Q3B =========\n";
         std::cout << "OPTIONS:\n";
-        std::cout << " 1 - \n";
+        std::cout << " 1 - Heap vs Radix Benchmark (6-digit Integers), n = 100 to 10000000\n";
+        std::cout << " 2 - Heap vs Radix Benchmark (6-letter Strings), n = 100 to 1000000\n";
+        std::cout << " 3 - Correctness Tests (empty, single, sorted, reversed, duplicates, negatives)\n";
+        std::cout << " 4 - Radix Degradation Demo (key width scales with n)\n";
+        std::cout << " 5 - Heap Sort special case (equal keys)\n";
         std::cout << " Q - Quit Application\n\n";
 
         // Get user's input
@@ -346,55 +575,71 @@ int main() {
         // CASE Q: QUIT APPLICATION
         if (userInput == "q") {
             std::cout << "Quitting application!\n";
-
-            ClearArray(testDataArray);
             runProgram = false;
-        // CASE 1: Heap vs Radix, integer, N
+        // CASE 1: Benchmarking Radix and Heap (INT), n = 100 - 10000000
         } else if (userInput == "1") {
-            TestCasesIntegers(testDataArray, 100, 0, 100);
+            TestOne();
+        // CASE 2: Benchmarking Radix and Heap (STR), n = 100 - 10000
         } else if (userInput == "2") {
-            //testDataArray = std::vector<int>{10, 56, 3, 23, 90, 22, 34, 18, 90};
-            //testDataArray = std::vector<int>{90, 80, 70, 60, 50, 40, 30, 12, 1};
-            //TestCasesIntegers(testDataArray, 42, 0, 100);
-            //TestCasesIntegersOrder(testDataArray, 42, 0, 100);
-            TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
-
-            DisplayArray(testDataArray);
-            HeapSort(testDataArray, outputArrayInt);
-            DisplayArray(outputArrayInt);
-            DisplayComparisonOne(outputArrayInt, 0);
-
-            std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
-            std::vector<std::string> outputArrayInt2;
-            DisplayArray(testDataArray2);
-            HeapSort(testDataArray2, outputArrayInt2);
-            DisplayArray(outputArrayInt2);
-            DisplayComparisonOne(outputArrayInt2, 0);
+            TestTwo();
+        // CASE 3: Correctness for both sorts
         } else if (userInput == "3") {
-            //TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
-            TestCasesIntegers(testDataArray, 42, 0, 100);
-
-            DisplayArray(testDataArray);
-            RadixSort(testDataArray, outputArrayInt);
-            DisplayArray(outputArrayInt);
-            DisplayComparisonOne(outputArrayInt, 1);
-
-            std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
-            std::vector<std::string> outputArrayInt2;
-            DisplayArray(testDataArray2);
-            RadixSort(testDataArray2, outputArrayInt2);
-            DisplayArray(outputArrayInt2);
-            DisplayComparisonOne(outputArrayInt2, 1);
+            TestThree();
+        // CASE 4: Radix degradation
         } else if (userInput == "4") {
-            RunBenchmarks();
+            TestFour();
+        // CASE 5: Heap special case
+        } else if (userInput == "5") {
+            TestFive();
         }
-
-        // Generate Vega-Lite JSON specification
-        //nlohmann::json spec = generate_vega_lite_spec(sizes, times1, times2, times3);
-
-        // Generate HTML file
-        //generate_html(spec, "bubble_sort_timings.html");
     }
 
     return 0;
 }
+
+// -------------- OUTPUT-RELATED HELPERS --------------
+// template <typename T>
+// float DisplayComparisonOne(std::vector<T>& arr, int sortType) {
+//     int n = arr.size();
+//     // 0 - n log n, 1 - n * k
+//     float bigO = (sortType == 0 ? n * std::log2f(n) : n * passes); // n * k
+
+//     float compBigORatio = (float)comparisons / bigO;
+
+//     std::cout << "Ratio: " << compBigORatio << std::endl;
+
+//     return compBigORatio; // just in case
+// }
+
+//testDataArray = std::vector<int>{10, 56, 3, 23, 90, 22, 34, 18, 90};
+//testDataArray = std::vector<int>{90, 80, 70, 60, 50, 40, 30, 12, 1};
+//TestCasesIntegers(testDataArray, 42, 0, 100);
+//TestCasesIntegersOrder(testDataArray, 42, 0, 100);
+// TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
+
+// DisplayArray(testDataArray);
+// HeapSort(testDataArray, outputArrayInt);
+// DisplayArray(outputArrayInt);
+// DisplayComparisonOne(outputArrayInt, 0);
+
+// std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+// std::vector<std::string> outputArrayInt2;
+// DisplayArray(testDataArray2);
+// HeapSort(testDataArray2, outputArrayInt2);
+// DisplayArray(outputArrayInt2);
+// DisplayComparisonOne(outputArrayInt2, 0);
+
+//TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
+// TestCasesIntegers(testDataArray, 42, 0, 100);
+
+// DisplayArray(testDataArray);
+// RadixSort(testDataArray, outputArrayInt);
+// DisplayArray(outputArrayInt);
+// DisplayComparisonOne(outputArrayInt, 1);
+
+// std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+// std::vector<std::string> outputArrayInt2;
+// DisplayArray(testDataArray2);
+// RadixSort(testDataArray2, outputArrayInt2);
+// DisplayArray(outputArrayInt2);
+// DisplayComparisonOne(outputArrayInt2, 1);

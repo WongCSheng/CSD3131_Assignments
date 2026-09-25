@@ -1,15 +1,23 @@
 # Source and target definitions
-SRCS = nlohmann_json.h vega_lite_plot.h vega_lite_plot.cpp q3b.cpp
-TARGET = q3b.out
+SRCS = q3b.cpp
+TARGET = q3b.exe
+CXXFLAGS = -Wall -g -std=c++17
 
-# Compilation rules
+.PHONY: all run valgrind clean
+
+all: $(TARGET)
+
 $(TARGET): $(SRCS)
-	g++ -Wall -o $(TARGET) $(SRCS)
+	g++ $(CXXFLAGS) $(SRCS) -o $(TARGET)
 
 # Run
-run:
+run: $(TARGET)
 	./$(TARGET)
+
+# Valgrind
+valgrind: $(TARGET)
+	valgrind ./$(TARGET)
 
 # Clean up binaries
 clean:
-	rm -f $(TARGET) q3b.html
+	rm -f $(TARGET)
