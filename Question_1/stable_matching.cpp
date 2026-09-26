@@ -12,14 +12,30 @@
 //https://medium.com/@lsc830621/algorithm-stable-matching-problem-implementation-using-c-b40c6c6fc71a
 //https://en.cppreference.com/cpp/numeric/random/uniform_int_distribution
 
-#define MIN_NUM 1
-#define MAX_NUM 5
+#define MIN_NUM 5
+#define MAX_NUM 20
+
+//Have to add criteria and sort preference list based on that
+//for masters, what type of craft they offer
+enum craft {
+	NYONYA_KEBAYA,
+	PERANAKAN_BEADWORK,
+	LANTERN_MAKING,
+	RATTAN_WEAVING,
+	TRADITIONAL_PASTRY_MAKING
+};
+
+//for disciple, what was their background before wanting to learn from the masters
+enum background {
+
+};
 
 //Maybe the disciples' criteria is the type of craft the master has to offer
 struct Disciple {
 	int id;
 	bool assigned;
 	int assigned_id;
+	background bg;
 	std::vector<int> preferred_masters;
 };
 
@@ -28,6 +44,7 @@ struct Master {
 	int id;
 	bool assigned;
 	int assigned_id;
+	craft type;
 	std::vector<int> preferred_disciples;
 };
 
@@ -50,10 +67,25 @@ int generate_rand() {
 
 
 //To randomly generate a list of masters and disciples
-void initialization() {
+void initialization(int master) {
 	int num_masters = generate_rand();
 	int num_disciple = generate_rand();
-	for (int i = 0; i < num_masters; i++) {
+
+	int master_init = 0;
+	int disciple_init = 0;
+
+	if (master == 0) {
+		master_init++;
+	}
+	else if(master == 1) {
+		disciple_init++;
+	}
+	else {
+		//potentially for test case
+		//Empty by defult
+	}
+
+	for (int i = master_init; i < num_masters; i++) {
 		Master tmp;
 		masters.push_back(tmp);
 		masters[i].id = i;
@@ -67,7 +99,7 @@ void initialization() {
 		
 	}
 
-	for (int i = 0; i < num_disciple; i++) {
+	for (int i = disciple_init; i < num_disciple; i++) {
 		Disciple tmp;
 		disciples.push_back(tmp);
 		disciples[i].id = i;
@@ -167,11 +199,8 @@ void master_matching() {
 			}
 			else {
 				master_next[current_master_id]++;
-				//continue;
 			}
-			
-			//index++;
-			//continue;
+
 		}
 
 		
@@ -179,47 +208,115 @@ void master_matching() {
 }
 
 void disciple_matching() {
+	std::queue<int> free_disciple;
 
+	for (Disciple disciple : disciples) {
+		free_disciple.push(disciple.id);
+	}
+	std::vector<int> disciple_next(disciples.size(), 0);
+
+	while (!free_disciple.empty()) {
+		int current_disciple_id = free_disciple.front();
+
+		if (disciple_next[current_disciple_id] >= disciples[current_disciple_id].preferred_masters.size()) {
+			free_disciple.pop();
+			continue;
+		}
+		int current_master_id = disciples[current_disciple_id].preferred_masters[disciple_next[current_disciple_id]];
+
+
+		if (!masters[current_master_id].assigned) {
+			set_assgined(current_master_id, current_disciple_id);
+			free_disciple.pop();
+		}
+		else {
+			int ex_disciple = masters[current_master_id].assigned_id;
+			if (compare_pref(ex_disciple, current_disciple_id, current_master_id)) {
+				disciples[ex_disciple].assigned = false;
+				disciples[ex_disciple].assigned_id = -1;
+
+				set_assgined(current_master_id, current_disciple_id);
+
+				free_disciple.pop();
+				free_disciple.push(ex_disciple);
+			}
+			else {
+				disciple_next[current_disciple_id]++;
+			}
+
+		}
+
+
+	}
 }
 
 int main() {
 	//init here first
-	initialization();
-	//std::string first_input;
-	//std::cout << "Welcome! Are you a Master or a Disciple: ";
-	//std::cin >> first_input;
-	//std::transform(first_input.begin(), first_input.end(), first_input.begin(), [](unsigned char ch) {return std::tolower(ch); });
-	////std::cout << first_input<<std::endl;
-	////first_input.
-	//if (first_input == "master") {
+	//initialization();
+	std::string first_input;
+	while (true) {
+		std::cout << "Welcome! Are you a Master or a Disciple: ";
+		std::cin >> first_input;
+		std::transform(first_input.begin(), first_input.end(), first_input.begin(), [](unsigned char ch) {return std::tolower(ch); });
+		//std::cout << first_input<<std::endl;
+		//first_input.
+		if (first_input == "master") {
 
+			initialization(0);
+			break;
+
+
+			//after the input, do the matching
+
+			//master_matching();
+		}
+		else if (first_input == "disciple") {
+			initialization(1);
+			break;
+		}
+		else if (first_input == "t") {
+			//for testing
+			initialization(2);
+			break;
+		}
+		else {
+			std::cout << "Please only enter 'master' or 'disciple'.\n";
+		}
+	}
+
+	if (first_input == "master") {
+		master_matching();
+	}
+	else if(first_input == "disciple"){
+		disciple_matching();
+	}
+
+	
+	
+
+	//for (Master master : masters) {
+	//	std::cout << "Masters ranking: " << std::endl;
+
+	//	for (int d_id : master.preferred_disciples) {
+	//		std::cout << d_id << " ,";
+	//	}
+	//	std::cout<<std::endl;
+
+	//	std::cout << "Assigned disciple id: " << (master.assigned_id == -1? "None": std::to_string(master.assigned_id)) << std::endl;
+	//	//std::cout << masters[id].preferred_disciples;
 	//}
-	//after the input, do the matching
-	master_matching();
 
-	for (Master master : masters) {
-		std::cout << "Masters ranking: " << std::endl;
+	//for (Disciple disciple : disciples) {
+	//	std::cout << "Disciples ranking: " << std::endl;
 
-		for (int d_id : master.preferred_disciples) {
-			std::cout << d_id << " ,";
-		}
-		std::cout<<std::endl;
+	//	for (int m_id : disciple.preferred_masters) {
+	//		std::cout << m_id << " ,";
+	//	}
+	//	std::cout<<std::endl;
 
-		std::cout << "Assigned disciple id: " << master.assigned_id << std::endl;
-		//std::cout << masters[id].preferred_disciples;
-	}
-
-	for (Disciple disciple : disciples) {
-		std::cout << "Disciples ranking: " << std::endl;
-
-		for (int m_id : disciple.preferred_masters) {
-			std::cout << m_id << " ,";
-		}
-		std::cout<<std::endl;
-
-		std::cout << "Assigned Master id: " << disciple.assigned_id << std::endl;
-		//std::cout << masters[id].preferred_disciples;
-	}
+	//	std::cout << "Assigned Master id: " << (disciple.assigned_id == -1? "None": std::to_string(disciple.assigned_id)) << std::endl;
+	//	//std::cout << masters[id].preferred_disciples;
+	//}
 
 	return 0;
 }
