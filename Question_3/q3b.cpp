@@ -8,10 +8,9 @@
 #include <typeinfo>
 #include <iomanip>
 
-//#include "nlohmann_json.h"
-//#include "vega_lite_plot.h"
-
 // Base structure of sorts adapted from GeeksForGeeks
+// Radix Sort (string) adapted from StackOverflow: https://stackoverflow.com/questions/32543683/radix-sort-array-of-strings
+// Mapper algorithm adapted from StackOverflow: https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
 
 // References:
 // https://www.geeksforgeeks.org/cpp/how-to-make-a-countdown-timer-in-cpp/
@@ -23,12 +22,8 @@
 // https://en.wikipedia.org/wiki/Heapsort
 // https://www.geeksforgeeks.org/dsa/heap-sort/
 // https://stackoverflow.com/questions/26491137/number-of-comparisons-for-heap-sort
-
 // https://www.geeksforgeeks.org/dsa/radix-sort/
-
-// https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
 // https://dev.to/nitinsonicoder/radix-sort-1igp
-// https://stackoverflow.com/questions/32543683/radix-sort-array-of-strings
 
 // Radix Sort
 // O(n * k), number of digits in largest number
@@ -36,25 +31,19 @@
 // beats O(n log n) when k is small or constant (linear time)
 // limitation: only works efficiently on integers or fixed length strings
 
-// test cases: integer only, maybe float as a bonus limitation for radix
-
-// to do:
-// heap - show diff data types, like float, int, string
-// radix - show string, int only
-
 // -------------- GLOBALS --------------
-int comparisons = 0;
-int passes = 0;
+int comparisons = 0; // n
+int passes = 0;      // k
 
-std::random_device rng;
-std::mt19937 generator(rng()); // generator
+std::random_device rng;                     // rng things
+std::mt19937 generator(rng());              // generator
 std::uniform_real_distribution<double> distribution(-1.0, 1.0);
 
 // -------------- ALGORITHM 1: A O(n log n) algorithm - Heap Sort --------------
 template <typename T>
 void Heapify(std::vector<T>& arr, int n, int i){
 
-    // Initialize largest as root
+    // initialize largest as root
     int largest = i;
 
     // left index = 2*i + 1
@@ -63,43 +52,43 @@ void Heapify(std::vector<T>& arr, int n, int i){
     // right index = 2*i + 2
     int r = 2 * i + 2;
 
-    // If left child is larger than root
+    // if left child is larger than root
     if (l < n) {
         comparisons++;
         if (arr[l] > arr[largest]) largest = l;
     }
 
-    // If right child is larger than largest so far
+    // if right child is larger than largest so far
     if (r < n) {
         comparisons++;
         if (arr[r] > arr[largest]) largest = r;
     }
 
-    // If largest is not root
+    // if largest is not root
     if (largest != i) {
         std::swap(arr[i], arr[largest]);
 
-        // Recursively heapify the affected sub-tree
+        // recursively heapify the affected sub-tree
         Heapify(arr, n, largest);
     }
 }
 
 template <typename T>
 void HeapSort(std::vector<T> arr, std::vector<T>& output) {
+    // edge case: input array is empty. set output = arr and just return
     if (arr.empty()) { output = arr; return; }
     int n = arr.size();
 
-    // Build heap, rearrange vector
+    // build heap, rearrange vector
     for (int i = n / 2 - 1; i >= 0; i--)
         Heapify(arr, n, i);
 
-    // Extract an element from heap
+    // extract an element from heap
     for (int i = n - 1; i > 0; i--) {
-
-        // Move current root to end
+        // move current root to end
         std::swap(arr[0], arr[i]);
 
-        // Call max heapify on the reduced heap
+        // call max heapify on the reduced heap
         Heapify(arr, i, 0);
     }
 
@@ -107,6 +96,7 @@ void HeapSort(std::vector<T> arr, std::vector<T>& output) {
 }
 
 // -------------- ALGORITHM 2: Radix Sort --------------
+// integer version; relatively straightforward since it's just a > b
 int GetMaxInArray(std::vector<int>& arr) {
     int greatestFound = arr[0];
     for (int i = 1; i < (int)arr.size(); i++) {
@@ -115,6 +105,7 @@ int GetMaxInArray(std::vector<int>& arr) {
     return greatestFound;
 }
 
+// string version; compares the length of strings a and b
 int GetMaxInArray(std::vector<std::string>& arr) {
     int greatestFound = (int)arr[0].length();
     for (int i = 1; i < (int)arr.size(); i++) {
@@ -123,39 +114,33 @@ int GetMaxInArray(std::vector<std::string>& arr) {
     return greatestFound;
 }
 
+// integer version; count
 template <typename T>
 void CountSort(std::vector<T>& arr, int exp) {
     int n = (int)arr.size();
 
-    // Output array
+    // output array
     std::vector<int> output(n);
     int i, count[10] = { 0 };
 
-    // Store count of occurrences
-    // in count[]
+    // store count of occurrences in count[]
     for (i = 0; i < n; i++) {
         count[(arr[i] / exp) % 10]++;
         comparisons++;
     }
 
-    // Change count[i] so that count[i]
-    // now contains actual position
-    // of this digit in output[]
-    for (i = 1; i < 10; i++)
-        count[i] += count[i - 1];
+    // change count[i] so that count[i] now contains actual position of this digit in output[]
+    for (i = 1; i < 10; i++) count[i] += count[i - 1];
 
-    // Build the output array
+    // build the output array
     for (i = n - 1; i >= 0; i--) {
         output[count[(arr[i] / exp) % 10] - 1] = arr[i];
         count[(arr[i] / exp) % 10]--;
         comparisons++;
     }
 
-    // Copy the output array to arr[],
-    // so that arr[] now contains sorted
-    // numbers according to current digit
-    for (i = 0; i < n; i++)
-        arr[i] = output[i];
+    // copy the output array to arr[], so that arr[] now contains sorted numbers according to current digit
+    for (i = 0; i < n; i++) arr[i] = output[i];
 }
 
 template<>
@@ -163,11 +148,11 @@ void CountSort(std::vector<std::string>& arr, int exp) {
     int size = (int)arr.size();
 
     std::vector<std::string> arrCopy(size);
-    std::vector<int> characterFrequency(257, 0);
+    std::vector<int> characterFrequency(257, 0); // 256 for every possible byte value, +1 for empty case
 
     // count occurrences (using +1 offset so "no char at position k" maps to index 0)
-    for (size_t j = 0; j < size; j++) {
-        size_t idx = (exp < arr[j].size()) ? (size_t)(unsigned char)arr[j][exp] + 1 : 0;
+    for (int j = 0; j < size; j++) {
+        int idx = (exp < (int)arr[j].size()) ? (int)(unsigned char)arr[j][exp] + 1 : 0;
         characterFrequency[idx]++;
         comparisons++;
     }
@@ -179,7 +164,7 @@ void CountSort(std::vector<std::string>& arr, int exp) {
 
     // build sorted output (stable, iterate backwards)
     for (int r = (int)size - 1; r >= 0; r--) {
-        size_t idx = (exp < arr[r].size()) ? (size_t)(unsigned char)arr[r][ exp] + 1 : 0;
+        int idx = (exp < (int)arr[r].size()) ? (int)(unsigned char)arr[r][ exp] + 1 : 0;
         arrCopy[characterFrequency[idx] - 1] = arr[r];
         characterFrequency[idx]--;
         comparisons++;
@@ -194,6 +179,7 @@ void RadixSort(std::vector<T> arr, std::vector<T>& output) {
     if (arr.empty()) { output = arr; return; }
     int max = GetMaxInArray(arr);
 
+    // call appropriate count sort based on the data type
     if (typeid(T) == typeid(std::string)) {
         for (int digit = max; digit > 0; digit--){
             CountSort(arr, digit - 1);
@@ -210,28 +196,33 @@ void RadixSort(std::vector<T> arr, std::vector<T>& output) {
 }
 
 // -------------- TEST CASES GENERATION --------------
+// general mapper algorithm
 float Mapper(float inputStart, float inputEnd, float outputStart, float outputEnd, float input) {
     return outputStart + ((outputEnd - outputStart) / (inputEnd - inputStart)) * (input - inputStart);
 }
 
+// Integers in range [low, high]
 void TestCasesIntegers(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
     for (int i = 0; i < num; i++) {
         arr.push_back((int)Mapper(-1.0, 1.0, lowerRange, upperRange, distribution(generator)));
     }
 }
 
+// Integers in range [low, high], sorted ascending
 void TestCasesIntegersOrder(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
     for (int i = lowerRange, count = 0; i < upperRange && count < num; i++, count++) {
         arr.push_back(i);
     }
 }
 
+// Integers in range [low, high]. sorted descending
 void TestCasesIntegersOrderReversed(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
     for (int i = upperRange, count = 0; i > lowerRange && count < num; i--, count++) {
         arr.push_back(i);
     }
 }
 
+// Strings of length [low, high]
 void TestCasesVariableStrings(std::vector<std::string>& arr, int num = 100, int minLen = 1, int maxLen = 10) {
     for (int i = 0; i < num; i++) {
         int len = (int)Mapper(-1.0, 1.0, minLen, maxLen, distribution(generator));
@@ -244,6 +235,7 @@ void TestCasesVariableStrings(std::vector<std::string>& arr, int num = 100, int 
     }
 }
 
+// Single randomly generated Integer
 void TestCasesSameInteger(std::vector<int>& arr, int num = 100, int lowerRange = -10, int upperRange = 10) {
     int number = (int)Mapper(-1.0, 1.0, lowerRange, upperRange, distribution(generator));
     for (int i = 0; i < num; i++) {
@@ -251,6 +243,7 @@ void TestCasesSameInteger(std::vector<int>& arr, int num = 100, int lowerRange =
     }
 }
 
+// Single randomly generated String
 void TestCasesSameString(std::vector<std::string>& arr, int num = 100, int minLen = 1, int maxLen = 10) {
     int len = (int)Mapper(-1.0, 1.0, minLen, maxLen, distribution(generator));
     std::string s;
@@ -281,13 +274,13 @@ void DisplayArray(std::vector<T>& arr, std::string header = " -- CURRENT ARRAY C
 
 // -------------- TEST CASES --------------
 struct TestResult {
-    int n = 0;
-    int comparisons = 0;
-    int passes = 0;
-    float nk_ratio = 0;
-    float nlogn_ratio = 0;
-    float n_ratio = 0;
-    int chosen_int = 0;
+    int n = 0;             // size of data set
+    int comparisons = 0;   // n
+    int passes = 0;        // k
+    float nk_ratio = 0;    // comp / O(nk)
+    float nlogn_ratio = 0; // comp / O(n log n)
+    float n_ratio = 0;     // comp / O(n)
+    int chosen_int = 0;    // heap special case, equal keys: what was the int chosen
 };
 
 float FindNK(int n) {
@@ -302,6 +295,7 @@ float FindN(int n) {
     return (float)comparisons / ((float)n);
 }
 
+// Heap vs Radix Int: n = 100 to 1000000
 void TestOne() {
     std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000, 10000000};
     std::vector<TestResult> resultsHeap;
@@ -351,6 +345,7 @@ void TestOne() {
     }
 }
 
+// Heap vs Radix String: n = 100 to 1000000
 void TestTwo() {
     std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000};
     std::vector<TestResult> resultsHeap;
@@ -400,6 +395,7 @@ void TestTwo() {
     }
 }
 
+// Heap vs Radix: Correctness (with one limitation for negative in Radix)
 void TestThree() {
     std::cout << "TEST 3: CORRECTNESS\n";
 
@@ -449,6 +445,7 @@ void TestThree() {
     }
 }
 
+// Radix Sort Degradation
 void TestFour() {
     std::vector<int> sizes = {100, 1000, 10000, 100000, 1000000, 10000000};
     std::vector<TestResult> resultsRadixConst;
@@ -505,6 +502,7 @@ void TestFour() {
     }
 }
 
+// Heap Sort Special Case: Equal Keys
 void TestFive() {
     std::cout << "TEST 5: HEAP SORT SPECIAL CASE (EQUAL KEYS)\n";
 
@@ -544,7 +542,7 @@ int main() {
 
     bool runProgram = true;
     while (runProgram) {
-        // reset user input, comparison, testdataarray at every loop start
+        // reset user input, comparison, passes at every loop start for good measure
         userInput.clear();
         comparisons = 0;
         passes = 0;
@@ -558,10 +556,10 @@ int main() {
         std::cout << " 5 - Heap Sort special case (equal keys)\n";
         std::cout << " Q - Quit Application\n\n";
 
-        // Get user's input
+        // get user's input
         std::cin >> userInput;
 
-        // std::cin fails somehow
+        // if std::cin fails somehow
         if (std::cin.fail()) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -596,50 +594,3 @@ int main() {
 
     return 0;
 }
-
-// -------------- OUTPUT-RELATED HELPERS --------------
-// template <typename T>
-// float DisplayComparisonOne(std::vector<T>& arr, int sortType) {
-//     int n = arr.size();
-//     // 0 - n log n, 1 - n * k
-//     float bigO = (sortType == 0 ? n * std::log2f(n) : n * passes); // n * k
-
-//     float compBigORatio = (float)comparisons / bigO;
-
-//     std::cout << "Ratio: " << compBigORatio << std::endl;
-
-//     return compBigORatio; // just in case
-// }
-
-//testDataArray = std::vector<int>{10, 56, 3, 23, 90, 22, 34, 18, 90};
-//testDataArray = std::vector<int>{90, 80, 70, 60, 50, 40, 30, 12, 1};
-//TestCasesIntegers(testDataArray, 42, 0, 100);
-//TestCasesIntegersOrder(testDataArray, 42, 0, 100);
-// TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
-
-// DisplayArray(testDataArray);
-// HeapSort(testDataArray, outputArrayInt);
-// DisplayArray(outputArrayInt);
-// DisplayComparisonOne(outputArrayInt, 0);
-
-// std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
-// std::vector<std::string> outputArrayInt2;
-// DisplayArray(testDataArray2);
-// HeapSort(testDataArray2, outputArrayInt2);
-// DisplayArray(outputArrayInt2);
-// DisplayComparisonOne(outputArrayInt2, 0);
-
-//TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
-// TestCasesIntegers(testDataArray, 42, 0, 100);
-
-// DisplayArray(testDataArray);
-// RadixSort(testDataArray, outputArrayInt);
-// DisplayArray(outputArrayInt);
-// DisplayComparisonOne(outputArrayInt, 1);
-
-// std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
-// std::vector<std::string> outputArrayInt2;
-// DisplayArray(testDataArray2);
-// RadixSort(testDataArray2, outputArrayInt2);
-// DisplayArray(outputArrayInt2);
-// DisplayComparisonOne(outputArrayInt2, 1);

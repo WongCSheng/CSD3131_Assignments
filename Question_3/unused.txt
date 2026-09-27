@@ -1,0 +1,46 @@
+// -------------- OUTPUT-RELATED HELPERS --------------
+// template <typename T>
+// float DisplayComparisonOne(std::vector<T>& arr, int sortType) {
+//     int n = arr.size();
+//     // 0 - n log n, 1 - n * k
+//     float bigO = (sortType == 0 ? n * std::log2f(n) : n * passes); // n * k
+
+//     float compBigORatio = (float)comparisons / bigO;
+
+//     std::cout << "Ratio: " << compBigORatio << std::endl;
+
+//     return compBigORatio; // just in case
+// }
+
+//testDataArray = std::vector<int>{10, 56, 3, 23, 90, 22, 34, 18, 90};
+//testDataArray = std::vector<int>{90, 80, 70, 60, 50, 40, 30, 12, 1};
+//TestCasesIntegers(testDataArray, 42, 0, 100);
+//TestCasesIntegersOrder(testDataArray, 42, 0, 100);
+// TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
+
+// DisplayArray(testDataArray);
+// HeapSort(testDataArray, outputArrayInt);
+// DisplayArray(outputArrayInt);
+// DisplayComparisonOne(outputArrayInt, 0);
+
+// std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+// std::vector<std::string> outputArrayInt2;
+// DisplayArray(testDataArray2);
+// HeapSort(testDataArray2, outputArrayInt2);
+// DisplayArray(outputArrayInt2);
+// DisplayComparisonOne(outputArrayInt2, 0);
+
+//TestCasesIntegersOrderReversed(testDataArray, 42, 0, 100);
+// TestCasesIntegers(testDataArray, 42, 0, 100);
+
+// DisplayArray(testDataArray);
+// RadixSort(testDataArray, outputArrayInt);
+// DisplayArray(outputArrayInt);
+// DisplayComparisonOne(outputArrayInt, 1);
+
+// std::vector<std::string> testDataArray2 = {"book", "tree", "ship", "roll", "poll", "awes"};
+// std::vector<std::string> outputArrayInt2;
+// DisplayArray(testDataArray2);
+// RadixSort(testDataArray2, outputArrayInt2);
+// DisplayArray(outputArrayInt2);
+// DisplayComparisonOne(outputArrayInt2, 1);
