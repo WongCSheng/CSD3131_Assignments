@@ -18,7 +18,8 @@
 
 /*
 * From T(n) = 3·T(n/3) + lg(n), we can tell that the recursive method splits into 3 subproblems of size n/3,
-* and the cost of combining the results is lg(n).
+* and the time complexity for each function call is lg(n). For each function call to be lg(n), there has to be a
+* split 
 */
 
 /**
@@ -38,35 +39,37 @@ void SubstitutionMethod()
     std::cout << "Time taken: " << duration.count() << " microseconds" << std::endl;
 }
 
-/*
-* From T(n) = 3·T(n/3) + lg(n), we can tell that the recursive method splits into 3 subproblems of size n/3,
-* and the cost of combining the results is lg(n).
-*/
-
-void RecursiveMethod()
+void threeWaySortExample()
 {
-    std::cout << "Recursive Method choosen" << std::endl;
-}
-
-/*
- * To understand from the Master Method perspective, we have T(n) = 3·T(n/3) + lg(n), we can see that a = 3, b = 3, and f(n) = lg(n).
- */
-
-void MasterMethod()
-{
-    std::cout << "Master Method choosen" << std::endl;
+    std::cout << "Three-way Merge Sort choosen.\nEnter number of elements to sort: ";
+    int n;
+    std::vector<int> arr;
+    std::cin >> n;
+    std::cout << "Enter " << n << " elements to sort:\n";
+    for(int i = 0; i < n; ++i)
+    {
+        int element;
+        std::cin >> element;
+        arr.push_back(element);
+    }
+    auto start_time = std::chrono::high_resolution_clock::now();
+    threeWayMergeSort(arr, 0, n - 1);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    printArray(arr);
+    std::cout << "Time taken: " << duration.count() << " microseconds" << std::endl;
 }
 
 int main()
 {    
     int selectedMethod = 0;
     
-    std::cout << "Enter which method you want to view:\n1. Substitution Method\n2. Recursive Method\n3. Master Method\n4. Exit\n";
+    std::cout << "Enter which method you want to view:\n1. Substitution Method\n2. Three way Merge Sort\n9. Exit\n";
 
     while(std::cin >> selectedMethod)
     {
         // Exit the program if the user inputs 4
-        if(selectedMethod == 4)
+        if(selectedMethod == 9)
         {
             std::cout << "Exiting program." << std::endl;
             break;
@@ -78,10 +81,7 @@ int main()
                 SubstitutionMethod();
                 break;
             case 2:
-                RecursiveMethod();
-                break;
-            case 3:
-                MasterMethod();
+                threeWaySortExample();
                 break;
             default:
                 std::cout << "Invalid input. Please try again." << std::endl;
@@ -89,7 +89,7 @@ int main()
 
         selectedMethod = 0;
     
-        std::cout << "Enter which method you want to view:\n1. Substitution Method\n2. Recursive Method\n3. Master Method\n4. Exit\n";
+        std::cout << "Enter which method you want to view:\n1. Substitution Method\n2. Three-way Merge Sort\n3. Master Method\n9. Exit\n";
     }
 
     return 0;

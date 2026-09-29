@@ -33,4 +33,6 @@ run: $(TARGET)
 clean:
 	rm -f $(OBJECTS) $(TARGET)
 
-.PHONY: all run clean
+rebuild: clean all
+
+.PHONY: all run clean rebuild
