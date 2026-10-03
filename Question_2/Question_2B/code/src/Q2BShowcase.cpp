@@ -19,7 +19,7 @@
 #include "../header/Livability_Score_Calculator.hpp"
 #include "../header/GSTVoucher.hpp"
 
-#define data_path "../data/"
+#define data_path std::filesystem::current_path().string() + "/data/"
 
 /*
 * From T(n) = 3·T(n/3) + lg(n), we can tell that the recursive method splits into 3 subproblems of size n/3,
