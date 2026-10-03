@@ -11,7 +11,7 @@ CXXFLAGS = -std=c++23 -Wall -Wextra -O2
 TARGET = my_program
 
 # Source and object files
-SOURCES = Q2BShowcase.cpp
+SOURCES = src/Q2BShowcase.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 # Compile source files into object files
