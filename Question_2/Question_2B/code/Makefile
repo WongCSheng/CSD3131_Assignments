@@ -32,7 +32,8 @@ run: $(TARGET)
 # Clean up build artifacts
 clean:
 	rm -f $(OBJECTS) $(TARGET)
+	rm -f data/eligible_people.csv
 
-rebuild: clean all
+rebuild: clean all run
 
 .PHONY: all run clean rebuild

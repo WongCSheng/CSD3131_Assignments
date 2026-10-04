@@ -79,7 +79,7 @@ std::vector<std::string> dataFileList()
     std::vector<std::string> files;
     for(const auto& entry : std::filesystem::directory_iterator(data_path))
     {
-        if(entry.is_regular_file())
+        if(entry.is_regular_file() && entry.path().filename().string().find("citizens") != std::string::npos)
         {
             files.push_back(entry.path().filename().string());
         }
@@ -103,16 +103,18 @@ void GSTVoucherExample()
     }
 
     std::cin >> selectedFileIndex;
+    std::cout << std::endl;
 
     if (selectedFileIndex > 0 && selectedFileIndex <= files.size())
     {
         std::string filename = files[selectedFileIndex - 1];
         std::vector<Person> people = readCSV(data_path + filename);
         auto start_time = std::chrono::high_resolution_clock::now();
-        processSegmentRecursive(people, 0, people.size() - 1);
+        processSegmentRecursive(people, 0, people.size());
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
         std::cout << "Time taken: " << duration.count() << " microseconds" << std::endl;
+        SaveEligiblePeopleFile(people, data_path, filename.substr(filename.find_last_of('_') + 1, filename.find_last_of('.') - filename.find_last_of('_') - 1));
     }
     else
     {
@@ -143,10 +145,11 @@ int main()
 {    
     int selectedMethod = 0;
     
-    std::cout << "Enter which method you want to view:\n1. Recursive Test\n2. Three way Merge Sort\n3. GST Voucher Eligibility Checker\n4. Livability Score Calculator\n9. Exit\n";
+    std::cout << "Enter which method you want to view:\n1. Recursive Test\n2. Three way Merge Sort\n3. GST Voucher Eligibility Checker\n4. Livability Score Calculator\n9. Exit\n\n";
 
     while(std::cin >> selectedMethod)
     {
+        std::cout << std::endl;
         // Exit the program if the user inputs 4
         if(selectedMethod == 9)
         {
@@ -174,7 +177,7 @@ int main()
 
         selectedMethod = 0;
     
-        std::cout << "Enter which method you want to view:\n1. Substitution Method\n2. Three-way Merge Sort\n3. Master Method\n9. Exit\n";
+        std::cout << "Enter which method you want to view:\n1. Recursive Test\n2. Three way Merge Sort\n3. GST Voucher Eligibility Checker\n4. Livability Score Calculator\n9. Exit\n\n";
     }
 
     return 0;

@@ -11,6 +11,7 @@
  */
 struct Person
 {
+    std::string name;
     int age;
     std::string job;
     double monthlyIncome;
@@ -67,35 +68,75 @@ void evaluateEligibility(Person& p)
  */
 void processSegmentRecursive(std::vector<Person>& data, size_t left, size_t right)
 {
-    if (left >= right)
+    const size_t length = right - left;
+    if (length == 0)
     {
         return;
     }
 
-    // O(log n) work equivalent simulation per recursive frame split initialization
-    // (e.g., computing balanced index pivots or split boundaries via logarithmic steps)
-    volatile double overheadWork = 0;
-    size_t length = right - left + 1;
-    if (length > 1)
+    // Simulate Θ(log n) work per recursive call.
+    volatile size_t overheadWork = 0;
+    for (size_t remaining = length; remaining > 1; remaining /= 2)
     {
-        overheadWork += std::log2(length); 
+        ++overheadWork;
     }
 
-    if (length == 1)
+    if (length <= 2)
     {
-        evaluateEligibility(data[left]);
+        for (size_t i = left; i < right; ++i)
+        {
+            evaluateEligibility(data[i]);
+        }
         return;
     }
 
-    // Divide size into 3 sub-segments
-    size_t third = length / 3;
-    size_t mid1 = left + third;
-    size_t mid2 = left + 2 * third;
+    const size_t third = length / 3;
+    const size_t remainder = length % 3;
+    const size_t firstSize = third + (remainder > 0 ? 1 : 0);
+    const size_t secondSize = third + (remainder > 1 ? 1 : 0);
 
-    // 3 recursive branches: T(n/3) called 3 times
-    processSegmentRecursive(data, left, mid1 - 1);
-    processSegmentRecursive(data, mid1, mid2 - 1);
+    const size_t mid1 = left + firstSize;
+    const size_t mid2 = mid1 + secondSize;
+
+    processSegmentRecursive(data, left, mid1);
+    processSegmentRecursive(data, mid1, mid2);
     processSegmentRecursive(data, mid2, right);
+}
+
+/**
+ * @brief Save the list of eligible people to a CSV file named "eligible_people.csv".
+ * 
+ * @param people 
+ */
+void SaveEligiblePeopleFile(const std::vector<Person>& people, std::string path, std::string pax)
+{
+    std::cout << "Saving eligible people to file...\n\n";
+    std::ofstream outFile(path + "eligible_people_" + pax + ".csv");
+    if (!outFile.is_open())
+    {
+        std::cerr << "Error: Could not open output file for writing." << std::endl;
+        return;
+    }
+
+    // Write header
+    outFile << "Name,Age,Job,Monthly Income,Properties Owned,Property Monthly Value,Cashback Amount\n";
+    
+    // Write eligible people
+    for (const auto& person : people)
+    {
+        if (person.isEligible)
+        {
+            outFile << person.name << ","
+                    << person.age << ","
+                    << person.job << ","
+                    << person.monthlyIncome << ","
+                    << person.propertiesOwned << ","
+                    << person.propertyMonthlyValue << ","
+                    << person.cashbackAmount << "\n";
+        }
+    }
+
+    outFile.close();
 }
 
 /**
@@ -128,6 +169,7 @@ std::vector<Person> readCSV(const std::string& filename)
         try
         {
             // "Age", "Job", "Monthly Income", "Amount of property owned", "Property monthly value"
+            if (std::getline(ss, val, ',')) p.name = val;
             if (std::getline(ss, val, ',')) p.age = std::stoi(val);
             if (std::getline(ss, val, ',')) p.job = val;
             if (std::getline(ss, val, ',')) p.monthlyIncome = std::stod(val);
