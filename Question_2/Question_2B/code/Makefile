@@ -32,7 +32,7 @@ run: $(TARGET)
 # Clean up build artifacts
 clean:
 	rm -f $(OBJECTS) $(TARGET)
-	rm -f data/eligible_people.csv
+	rm -f $(wildcard data/eligible_people_*.csv)
 
 rebuild: clean all run
 

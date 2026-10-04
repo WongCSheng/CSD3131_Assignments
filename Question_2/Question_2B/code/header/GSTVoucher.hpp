@@ -68,13 +68,13 @@ void evaluateEligibility(Person& p)
  */
 void processSegmentRecursive(std::vector<Person>& data, size_t left, size_t right)
 {
-    const size_t length = right - left;
+    const size_t length = right - left + 1;
     if (length == 0)
     {
         return;
     }
 
-    // Simulate Θ(log n) work per recursive call.
+    // Simulate Θ(log n) work as to whatever the end user needs for this filtering program.
     volatile size_t overheadWork = 0;
     for (size_t remaining = length; remaining > 1; remaining /= 2)
     {
