@@ -3,10 +3,13 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../lib/stb_image_write.h"
 
+#include "../shared/energy_map.h"
+
 #include <iostream>
 
 int main(void) {
 	std::cout << "hello world\n";
+    energy_map::test();
 
     const int w = 256, h = 256;
     unsigned char data[w * h * 3];
