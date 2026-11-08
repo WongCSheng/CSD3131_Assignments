@@ -15,7 +15,7 @@ namespace energy_map {
 	void free_image(Image& image);
 	void write_image(const char* filename, int target_w, int target_h, int target_channels, unsigned char *bytes); // this assumes png
 
-	unsigned char* wn_test(unsigned char *img, int w, int h, int channels); // DO NOT USE THIS THIS IS A PLACEHOLDER
+	unsigned char* wn_test(unsigned char *img, int w, int h, int channels); // DO NOT USE THIS THIS IS A PLACEHOLDER (this transforms the img into sepia its not an energy map)
 }
 
 #endif
