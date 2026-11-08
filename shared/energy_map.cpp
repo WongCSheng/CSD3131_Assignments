@@ -5,3 +5,9 @@
 void energy_map::test() {
 	std::cout << "abc\n";
 }
+
+
+// placeholder fn DO NOT USE
+void energy_map::wn_test() {
+
+}
