@@ -8,7 +8,9 @@
 #include <fstream>
 #include <vector>
 
-typedef struct RGBA 
+// g++ -Wall -c ./lib/energy.cpp -o ./lib/energy.o
+
+struct RGBA 
 {
     int R;
     int G;
@@ -29,7 +31,7 @@ public:
      * @brief 
      *  returns data 
      */
-    std::vector<unsigned char> getData()
+    std::vector<unsigned char> getData() const
     { return data; }
 
     /**
@@ -37,14 +39,14 @@ public:
      * 
      * @return int 
      */
-    int getWidth()  { return w; }
+    int getWidth() const { return w; }
 
     /**
      * @brief Get the Height object
      * 
      * @return int 
      */
-    int getHeight() { return h; }
+    int getHeight() const { return h; }
 
     /**
      * @brief 
@@ -56,7 +58,7 @@ public:
      * @return RGBA 
      *  rgba value at pixel x,y of image
      */
-    RGBA getRGBA(int x, int y)
+    RGBA getRGBA(int x, int y) const
     {
         RGBA ret{-1,-1,-1,-1};
     
@@ -83,7 +85,7 @@ public:
      * @return
      *   true if success false if nobt
      */
-    bool parseImg(std::string path);
+    bool parseImg(const std::string& path); 
 
     /**
      * @brief 
@@ -93,7 +95,7 @@ public:
      *  int wil be the x position of pixel to be removed
      *  at the row
      */
-    void imgData::removeSeam(std::vector<int> seam);
+    void removeSeam(const std::vector<int>& seam);
 
     /**
      * @brief 
@@ -103,7 +105,7 @@ public:
      * @return
      *  true if success, false otherwise
      */
-    bool writeImg(std::string path);
+    bool writeImg(const std::string& path) const;
 };
 
 
@@ -119,4 +121,4 @@ public:
  * @return 
  *  energy value of pixel
  */
-int generateEnergyValue(imgData& imd, int x, int y);
+int generateEnergyValue(const imgData& imd, int x, int y);

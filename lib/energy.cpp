@@ -2,21 +2,21 @@
 
 // https://avikdas.com/2019/05/14/real-world-dynamic-programming-seam-carving.html
 
-bool imgData::parseImg(std::string path)
+bool imgData::parseImg(const std::string& path) 
 {
     // check if exists
     std::ifstream f(path.c_str());
 
     if (!f.good())
     {
-        std::cout << "Failed to read file";
+        std::cout << "Failed to read file" << std::endl;
         return false;
     }
 
     unsigned char* d = stbi_load(path.data(), &w, &h, &ch, 0);
     if (!d)
     {
-        std::cout << "Failed to load image";
+        std::cout << "Failed to load image" << std::endl;
     }
 
     size_t imgsize = w * h * ch;
@@ -26,7 +26,7 @@ bool imgData::parseImg(std::string path)
     return true;
 }
 
-void imgData::removeSeam(std::vector<int> seam)
+void imgData::removeSeam(const std::vector<int>& seam)
 {
     std::vector<unsigned char> newdata((w-1)*h*ch);
 
@@ -51,7 +51,7 @@ void imgData::removeSeam(std::vector<int> seam)
     data = newdata;
 }
 
-bool imgData::writeImg(std::string path)
+bool imgData::writeImg(const std::string& path) const
 {
     int stride = w*ch;
 
@@ -61,7 +61,7 @@ bool imgData::writeImg(std::string path)
     return false;
 }
 
-int generateEnergyValue(imgData& imd, int x, int y)
+int generateEnergyValue(const imgData& imd, int x, int y)
 {
     RGBA center = imd.getRGBA(x, y);
     RGBA left = imd.getRGBA(x-1, y);
