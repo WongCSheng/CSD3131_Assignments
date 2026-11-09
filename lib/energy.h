@@ -1,6 +1,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "./stb_image.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -22,16 +25,6 @@ private:
     std::vector<unsigned char> data;
 
 public:
-    /**
-     * @brief 
-     * parses image into data given a path
-     * @param in path
-     *   path to image to be parsed
-     * @return
-     *   true if success false if nobt
-     */
-    bool parseImg(std::string path);
-
     /**
      * @brief 
      *  returns data 
@@ -70,7 +63,7 @@ public:
         //check bounds
         if (x > w || x < 0) return ret;
         if (y > h || y < 0) return ret;
-        ret.A = 0;
+        ret.A = 1;
 
         size_t pos = (y*w + x)*ch;
         ret.R = static_cast<int>(data[pos]);
@@ -81,6 +74,36 @@ public:
 
         return ret;
     }
+
+    /**
+     * @brief 
+     * parses image into data given a path
+     * @param in path
+     *   path to image to be parsed
+     * @return
+     *   true if success false if nobt
+     */
+    bool parseImg(std::string path);
+
+    /**
+     * @brief 
+     *  removes a seam from imgdata. t
+     * @param seam
+     *  vector of ints. assumes one int for each row
+     *  int wil be the x position of pixel to be removed
+     *  at the row
+     */
+    void imgData::removeSeam(std::vector<int> seam);
+
+    /**
+     * @brief 
+     *  writes imgdata to specified path
+     * @param path 
+     *  output
+     * @return
+     *  true if success, false otherwise
+     */
+    bool writeImg(std::string path);
 };
 
 

@@ -26,6 +26,41 @@ bool imgData::parseImg(std::string path)
     return true;
 }
 
+void imgData::removeSeam(std::vector<int> seam)
+{
+    std::vector<unsigned char> newdata((w-1)*h*ch);
+
+    for (int i =0; i < h; i++)
+    {
+        int seampos = seam[i]; // get position of seam for this row
+        for (int j =0; j < w; j++)
+        {
+            // skip if seam
+            if (j == seampos) continue;
+
+            // copy to new vector
+            size_t pos = (i*w +j)*ch;
+            newdata.push_back(data[pos]);
+            newdata.push_back(data[pos+1]);
+            newdata.push_back(data[pos+2]);
+            if (ch == 4) { newdata.push_back(data[pos+3]); }
+        }
+    }
+
+    w--;
+    data = newdata;
+}
+
+bool imgData::writeImg(std::string path)
+{
+    int stride = w*ch;
+
+    if (stbi_write_png(path.data(), w, h, ch, data.data(), stride))
+        return true;
+    
+    return false;
+}
+
 int generateEnergyValue(imgData& imd, int x, int y)
 {
     RGBA center = imd.getRGBA(x, y);
