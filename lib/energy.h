@@ -59,8 +59,8 @@ public:
         RGBA ret{-1,-1,-1,-1};
     
         //check bounds
-        if (x > w || x < 0) return ret;
-        if (y > h || y < 0) return ret;
+        if (x >= w || x < 0) return ret;
+        if (y >= h || y < 0) return ret;
         ret.A = 1;
 
         size_t pos = (y*w + x)*ch;
