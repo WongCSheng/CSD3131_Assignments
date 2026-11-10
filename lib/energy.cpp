@@ -1,6 +1,14 @@
 #include "energy.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "./stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
+
 // https://avikdas.com/2019/05/14/real-world-dynamic-programming-seam-carving.html
+
 
 bool imgData::parseImg(const std::string& path) 
 {
@@ -28,7 +36,8 @@ bool imgData::parseImg(const std::string& path)
 
 void imgData::removeSeam(const std::vector<int>& seam)
 {
-    std::vector<unsigned char> newdata((w-1)*h*ch);
+    std::vector<unsigned char> newdata;
+    newdata.reserve((w-1)*h*ch);
 
     for (int i =0; i < h; i++)
     {
