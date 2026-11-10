@@ -3,12 +3,13 @@
 #include <algorithm>
 
 // https://avikdas.com/2019/05/14/real-world-dynamic-programming-seam-carving.html
-
 // g++ -Wall -c ./lib/energy.o ./A2_Q1/q1.cpp -o ./lib/energy.o
 
+//type declarations
 using EnergyRow = std::vector<int>;
 using EnergyMap = std::vector<EnergyRow>;
 
+// builds energy map
 EnergyMap buildEnergyMap(const imgData& imd)
 {
     int w = imd.getWidth();
@@ -20,13 +21,14 @@ EnergyMap buildEnergyMap(const imgData& imd)
     {
         for (int j=0; j < w; j++)
         {
-            em[i][j] = generateEnergyValue(imd, i,j);
+            em[i][j] = generateEnergyValue(imd, j,i);
         }
     }
 
     return em;
 }
 
+// struct for backtracking when using dynamic programming
 struct seamPoint
 {
     int energy;
@@ -38,24 +40,29 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em)
 
     // seam map for dp prt
     std::vector<std::vector<seamPoint>> storage;
+
+    //set preious row as first row 
+    //since first row doesnt need to calculate for previous row's val
     std::vector<seamPoint> prevER;
-    for (int y=0; y < imd.getWidth(); y++)
+    for (int x=0; x < imd.getWidth(); x++)
     {
-        prevER.push_back(seamPoint{em[0][y], -1});
+        prevER.push_back(seamPoint{em[0][x], -1});
     }
 
+    //start from 2nd row, minimize value
     for (int y=1; y < imd.getHeight(); y++)
     {
         std::vector<seamPoint> spr{};
         const EnergyRow& er = em[y];
 
+        //get minimum energy for every pixel in row
         for (int x=0; x <imd.getWidth(); x++)
         {
             int energy = er[x];
             int x_left = std::max(0, x-1);
             int x_right = std::min(x+1, imd.getWidth()-1);
 
-            int minE = er[x_left];
+            int minE = prevER[x_left].energy;
             int minpos = x_left;
             for (int i=x_left; i <= x_right; i++)
             {
@@ -70,10 +77,13 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em)
             spr.push_back(seamPoint{minE, minpos});
         }
 
+        //push back previus row into storage
         storage.push_back(prevER);
+        //set current row as prevous row
         prevER = spr;
     }
 
+    //push back last row into storage
     storage.push_back(prevER);
 
     // find lowest seam
@@ -90,6 +100,7 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em)
         }
     }
 
+    //get seam points
     for (int i=imd.getHeight()-1; i >= 0; i--)
     {
         seamPoint sp = storage[i][pos];
@@ -97,15 +108,16 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em)
         pos = sp.prev_x;
     }
 
+    //seam is reversed, so put it properly
     std::reverse(seampos.begin(), seampos.end());
     return seampos;
 }
 
-
-int main()
+// main takes 2 args, first is path to image, 2nd is num of seams
+int main(int argc, char *argv[])
 {
-    std::string imgpath = "./img/surfer.png";
-
+    //prep image
+    std::string imgpath = argv[1];
     imgData imd{};
     if (!imd.parseImg(imgpath))
     {
@@ -114,31 +126,32 @@ int main()
     }
 
     EnergyMap em = buildEnergyMap(imd);
-
-    // for (const EnergyRow& er : em)
+    // for (EnergyRow er : em)
     // {
-    //     for (const int i : er)
+    //     for (int i: er)
     //     {
     //         std::cout << i << ",";
     //     }
-    //     std::cout <<std::endl;
+    //     std::cout << std::endl;
     // }
 
-    for (int i=0; i < 1024; i++)
+    //start seam carving
+    for (int i=0; i < std::stoi(argv[2]); i++)
     {
         std::vector<int> seam = findSeam(imd, em);
 
-        // std::cout << "seam: ";
+        std::cout << "seam: " << std::endl;
         // for (int i : seam)
         // {
         //     std::cout << i << ",";
-        // }
-        // std::cout << std::endl;
 
+        // }
+        std::cout << std::endl;
         imd.removeSeam(seam);
-        std::cout << i << "/1024..." <<std::endl; 
+        em = buildEnergyMap(imd);
     }
 
+    //create output image
     std::string imgout = "./A2_Q1/outs.png";
     imd.writeImg(imgout);
 
