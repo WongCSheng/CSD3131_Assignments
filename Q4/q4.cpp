@@ -6,6 +6,9 @@
 
 #include <iostream>
 #include <tuple>
+#include <queue>
+#include <climits>
+#include <algorithm>
 
 //type declarations
 using EnergyRow = std::vector<int>;
@@ -114,93 +117,79 @@ void build_edge_adj(const imgData& imd, const EnergyMap& em) {
     }
 }
 
-struct seamPoint
-{
-    int energy;
-    int prev_x;
-};
+// Dinic: BFS once to label nodes by distance from s, then DFS pushes many paths
+// along edges that go exactly one level deeper. Repeat until t is unreachable.
+std::vector<int> level, it;
 
-std::vector<int> findSeam(const imgData& imd, const EnergyMap& em)
-{
-    // how to perform graph cut for seam finding?
-
-
-    // seam map for dp prt
-    std::vector<std::vector<seamPoint>> storage;
-
-    //set preious row as first row 
-    //since first row doesnt need to calculate for previous row's val
-    std::vector<seamPoint> prevER;
-    for (int x=0; x < imd.getWidth(); x++)
-    {
-        prevER.push_back(seamPoint{em[0][x], -1});
-    }
-
-    //start from 2nd row, minimize value
-    for (int y=1; y < imd.getHeight(); y++)
-    {
-        std::vector<seamPoint> spr{};
-        const EnergyRow& er = em[y];
-
-        //get minimum energy for every pixel in row
-        for (int x=0; x <imd.getWidth(); x++)
-        {
-            int energy = er[x];
-            int x_left = std::max(0, x-1);
-            int x_right = std::min(x+1, imd.getWidth()-1);
-
-            int minE = prevER[x_left].energy;
-            int minpos = x_left;
-            for (int i=x_left; i <= x_right; i++)
-            {
-                if (minE > prevER[i].energy)
-                {
-                    minE = prevER[i].energy;
-                    minpos = i;
-                }
+bool bfsLevel(int V) {
+    level.assign(V, -1);
+    std::queue<int> q;
+    q.push(s); level[s] = 0;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int ei : adj[u]) {
+            int v = edges[ei].to;
+            if (edges[ei].cap > 0 && level[v] < 0) {
+                level[v] = level[u] + 1;
+                q.push(v);
             }
-
-            minE += energy;
-            spr.push_back(seamPoint{minE, minpos});
-        }
-
-        //push back previus row into storage
-        storage.push_back(prevER);
-        //set current row as prevous row
-        prevER = spr;
-    }
-
-    //push back last row into storage
-    storage.push_back(prevER);
-
-    // find lowest seam
-    std::vector<int> seampos;
-
-    //find smallest in last row
-    int pos = 0;
-    std::vector<seamPoint> lastRow = storage[imd.getHeight()-1];
-    for (int i=0; i<imd.getWidth(); i++)
-    {
-        if (lastRow[pos].energy > lastRow[i].energy)
-        {
-            pos = i;
         }
     }
+    return level[t] >= 0;
+}
 
-    //get seam points
-    for (int i=imd.getHeight()-1; i >= 0; i--)
-    {
-        seamPoint sp = storage[i][pos];
-        seampos.push_back(pos);
-        pos = sp.prev_x;
+long long dfsPush(int u, long long f) {
+    if (u == t) return f;
+    for (int &k = it[u]; k < (int)adj[u].size(); k++) {   // it[u] remembers dead ends
+        int ei = adj[u][k], v = edges[ei].to;
+        if (edges[ei].cap > 0 && level[v] == level[u] + 1) {
+            long long d = dfsPush(v, std::min(f, edges[ei].cap));
+            if (d > 0) {
+                edges[ei].cap     -= d;
+                edges[ei ^ 1].cap += d;   // reverse edge sits at index ^ 1
+                return d;
+            }
+        }
+    }
+    return 0;
+}
+
+void maxFlow(int V) {
+    while (bfsLevel(V)) {
+        it.assign(V, 0);
+        while (dfsPush(s, INF) > 0) {}
+    }
+}
+
+std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
+    int W = imd.getWidth(), H = imd.getHeight(), V = W * H + 2;
+
+    std::cout << "calling maxflow\n";
+    maxFlow(V);
+
+    // BFS from s over leftover capacity = source side of the cut
+    std::vector<bool> reach(V, false);
+    std::queue<int> q;
+    q.push(s); reach[s] = true;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int ei : adj[u]) {
+            int v = edges[ei].to;
+            if (edges[ei].cap > 0 && !reach[v]) { reach[v] = true; q.push(v); }
+        }
     }
 
-    //seam is reversed, so put it properly
-    std::reverse(seampos.begin(), seampos.end());
-    return seampos;
+    // seam pixel in each row = last reachable column
+    std::vector<int> seam(H, 0);
+    for (int i = 0; i < H; i++)
+        for (int j = 0; j < W; j++)
+            if (reach[id(i, j, W)]) seam[i] = j;
+    return seam;
 }
 // ---------- Graph Cut method ----------
 
+// ./q4 ../img/BroadwayTowerSeamCarvingA.png 100 broadway.png
+// ./q4 ../img/content-aware-scale-cat.png 100 cat.png
 // main takes 2 args, first is path to image, 2nd is number of seams, 3rd is output path
 int main(int argc, char *argv[])
 {
@@ -227,22 +216,28 @@ int main(int argc, char *argv[])
     // Step 3: Perform Graph Cut & Discard the removed seams
     for (int i=0; i < std::stoi(argv[2]); i++)
     {
+        std::cout << "this is iteration " << i << "of " << std::stoi(argv[2]) << std::endl;
         // compute s and t
         // they can have arbitrary node IDs, but since 0 and 1 are taken, 
         // they take the first 2 out of bounds IDs (being W*H and W*H+1)
+        std::cout << "recomputing s and t's indices...\n";
         s = imd.getWidth() * imd.getHeight();
         t = s + 1;
 
         // build the edge and adjacency lists
+        std::cout << "building edge and adjacency lists...\n";
         build_edge_adj(imd, em);
 
         // max flow, bfs, seam extraction
+        std::cout << "finding a seam...\n";
         std::vector<int> seam = findSeam(imd, em);
 
         // remove seam from image
+        std::cout << "removing a seam from img...\n";
         imd.removeSeam(seam);
 
         // rebuild the energy map for the next iteration
+        std::cout << "rebuilding energy map for next iteration\n";
         em = buildEnergyMap(imd);
     }
 
@@ -254,6 +249,7 @@ int main(int argc, char *argv[])
 
     // free(test_img);
     // free_image(image);
+    std::cout << "writing image...\n";
     std::string imgout = argv[3];
     imd.writeImg(imgout);
 }
