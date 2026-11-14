@@ -48,6 +48,14 @@ struct Edge {
     long long cap; // remaining capacity
 };
 
+// possible edges:
+// NW N  NE          NW x  x        *(i-1, j-1)  (i-1, j)  (i-1, j+1)
+// W  C  E    ====>  W  C  E  ====> *(i,   j-1) *(i,   j) *(i,   j+1)
+// SE S  SE          SW x  x        *(i+1, j-1)  (i+1, j)  (i+1, j+1)
+// E is the only one that carries the cost (capacity, finite edge)
+// W stops a row from being cut twice
+// SW and NW are infinite and keeps the seam connected between rows
+
 std::vector<Edge> edges;               // all edges, reverse stored right after each one
 std::vector<std::vector<int>> adj;     // adj[u] = indices into edges struct for edges leaving u
 
@@ -58,11 +66,52 @@ std::vector<std::vector<int>> adj;     // adj[u] = indices into edges struct for
 int s;                                 // source, a node connected by an inf-cap edge to first col's px in every row
 int t;                                 // sink, a node w an inf-cap edge from last col's px in every row
 
+const long long INF = LLONG_MAX / 4; // bigger than any possible seam cost
+
+// Add Edge Helper Function
+void addEdge(int u, int v, long long cap) {
+    // storing the edge and its capacity
+    adj[u].push_back(edges.size());
+    edges.push_back({v, cap});
+
+    // then the reverse of the edge and 0
+    adj[v].push_back(edges.size());
+    edges.push_back({u, 0});
+}
+
 // Build the Edges and Adjacency maps here based on the EnergyMap
 void build_edge_adj(const imgData& imd, const EnergyMap& em) {
+    int W = imd.getWidth(); int H = imd.getHeight();
+
     // clear the globals here
     edges.clear();
-    adj.clear();
+    adj.assign(W * H + 2, {});
+
+    // 1. source edges:   s -> (i, 0)          for each row
+    //                    (one infinite pipe from s to px in first col)
+    for (int i = 0; i < H; i++) addEdge(s, id(i, 0, W), INF);
+
+    // 2. sink edges:     (i, W-1) -> t        for each row
+    //                    (one infinite pipe from the px in last col to sink node t)
+    for (int i = 0; i < H; i++) addEdge(id(i, W - 1, W), t, INF);
+
+    // 3. east edges:     (i,j) -> (i,j+1)     cap = em[i][j]
+    // 4. west edges:     (i,j+1) -> (i,j)     cap = INF
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j + 1 < W; j++) {
+            addEdge(id(i, j, W),     id(i, j + 1, W), em[i][j]);  // east: cost of cutting here (finite)
+            addEdge(id(i, j + 1, W), id(i, j, W),     INF);       // west: stops a row being cut twice (infinite)
+        }
+    }
+
+    // 5. NW/SW edges:    (i,j) -> (i-1,j-1) and (i+1,j-1), cap = INF
+    //                    (only where j >= 1 and the target row exists)
+    for (int i = 0; i < H; i++) {
+        for (int j = 1; j < W; j++) {
+            if (i > 0)     addEdge(id(i, j, W), id(i - 1, j - 1, W), INF);  // NW
+            if (i + 1 < H) addEdge(id(i, j, W), id(i + 1, j - 1, W), INF);  // SW
+        }
+    }
 }
 
 struct seamPoint
@@ -178,14 +227,14 @@ int main(int argc, char *argv[])
     // Step 3: Perform Graph Cut & Discard the removed seams
     for (int i=0; i < std::stoi(argv[2]); i++)
     {
-        // build the edge and adjacency lists
-        build_edge_adj(imd, em);
-
         // compute s and t
         // they can have arbitrary node IDs, but since 0 and 1 are taken, 
         // they take the first 2 out of bounds IDs (being W*H and W*H+1)
         s = imd.getWidth() * imd.getHeight();
         t = s + 1;
+
+        // build the edge and adjacency lists
+        build_edge_adj(imd, em);
 
         // max flow, bfs, seam extraction
         std::vector<int> seam = findSeam(imd, em);
