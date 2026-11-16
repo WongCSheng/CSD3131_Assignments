@@ -1,8 +1,13 @@
+// OpenCV includes
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core.hpp>
 
+// Energy map includes
+#include "../shared/energy_map.h"
+
+// Standard Library
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -60,6 +65,7 @@ std::vector<int> FindGreedySeam(const cv::Mat& energy, bool orientation)
     {
         int bestY = 0;
         float minEnergy = energy.at<double>(0, 0);
+        // Find the minimum energy pixel in the first row
         for(int c = 1; c < cols; ++c)
         {
             if (energy.at<double>(0, c) < minEnergy)
@@ -74,6 +80,7 @@ std::vector<int> FindGreedySeam(const cv::Mat& energy, bool orientation)
         {
             int prevY = seam[i - 1];
             int minY = prevY;
+            // Store energy of the pixel directly below the previous pixel
             double minEnergy = energy.at<double>(i, prevY);
 
             // Check the left neighbor
@@ -95,7 +102,42 @@ std::vector<int> FindGreedySeam(const cv::Mat& energy, bool orientation)
     }
     else // Horizontal seam
     {
+        int bestX = 0;
+        float minEnergy = energy.at<double>(0, 0);
+        // Find the minimum energy pixel in the first column
+        for(int r = 1; r < rows; ++r)
+        {
+            if (energy.at<double>(r, 0) < minEnergy)
+            {
+                minEnergy = energy.at<double>(r, 0);
+                bestX = r;
+            }
+        }
+        seam[0] = bestX;
 
+        for (int j = 1; j < cols; ++j)
+        {
+            int prevX = seam[j - 1];
+            int minX = prevX;
+            // Store energy of the pixel directly to the right of the previous pixel
+            double minEnergy = energy.at<double>(prevX, j);
+
+            // Check the upper neighbor
+            if (prevX > 0 && energy.at<double>(prevX - 1, j) < minEnergy)
+            {
+                minEnergy = energy.at<double>(prevX - 1, j);
+                minX = prevX - 1;
+            }
+
+            // Check the lower neighbor
+            if (prevX < rows - 1 && energy.at<double>(prevX + 1, j) < minEnergy)
+            {
+                minEnergy = energy.at<double>(prevX + 1, j);
+                minX = prevX + 1;
+            }
+
+            seam[j] = minX;
+        }
     }
 
     return seam;
