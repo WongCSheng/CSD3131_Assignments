@@ -1,3 +1,8 @@
-*.vs
+# Ignore Visual Studio files
+*.vs/
+
+# Ignore folders
 /Question_3/build/
 /Question_3/dependencies/
+/Question_3/temp-build/
+/Question_3/temp-opencv-src/
