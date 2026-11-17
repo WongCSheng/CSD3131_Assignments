@@ -221,34 +221,42 @@ int main(int argc, char *argv[])
     // Step 2: Apply the energy filter to it
     EnergyMap em = buildEnergyMap(imd);
 
+    // output energy map here to see what it looks like
+    
+
     // Step 3: Perform Graph Cut & Discard the removed seams
-    for (int i=0; i < std::stoi(argv[2]); i++)
+    // restrict actual seam count here depending on picture's dimensions, because if it goes beyond width, segfault happens
+    int seamCount = std::stoi(argv[2]);
+    int maxW = (seamCount > imd.getWidth() ? imd.getWidth() : seamCount);
+
+    for (int i=0; i < maxW; i++)
     {
         //Record the start time
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         std::cout << "------------------------------ITERATION "<< i<<"-------------------------------------\n";
         std::cout << "this is iteration " << i << " of " << std::stoi(argv[2]) << std::endl;
+        std::cout << "this is iteration " << i << "of " << maxW << std::endl;
         // compute s and t
         // they can have arbitrary node IDs, but since 0 and 1 are taken, 
         // they take the first 2 out of bounds IDs (being W*H and W*H+1)
-        std::cout << "recomputing s and t's indices...\n";
+        //std::cout << "recomputing s and t's indices...\n";
         s = imd.getWidth() * imd.getHeight();
         t = s + 1;
 
         // build the edge and adjacency lists
-        std::cout << "building edge and adjacency lists...\n";
+        //std::cout << "building edge and adjacency lists...\n";
         build_edge_adj(imd, em);
 
         // max flow, bfs, seam extraction
-        std::cout << "finding a seam...\n";
+        //std::cout << "finding a seam...\n";
         std::vector<int> seam = findSeam(imd, em);
 
         // remove seam from image
-        std::cout << "removing a seam from img...\n";
+        //std::cout << "removing a seam from img...\n";
         imd.removeSeam(seam);
 
         // rebuild the energy map for the next iteration
-        std::cout << "rebuilding energy map for next iteration\n";
+        //std::cout << "rebuilding energy map for next iteration\n";
         em = buildEnergyMap(imd);
         //Record the end time
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
