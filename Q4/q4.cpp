@@ -233,9 +233,8 @@ int main(int argc, char *argv[])
     {
         //Record the start time
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-        std::cout << "------------------------------ITERATION "<< i<<"-------------------------------------\n";
-        std::cout << "this is iteration " << i << " of " << std::stoi(argv[2]) << std::endl;
-        std::cout << "this is iteration " << i << "of " << maxW << std::endl;
+        std::cout << "------------------------------ITERATION "<< i +1<<"-------------------------------------\n";
+        std::cout << "this is iteration " << i +1 << " of " << maxW << std::endl;
         // compute s and t
         // they can have arbitrary node IDs, but since 0 and 1 are taken, 
         // they take the first 2 out of bounds IDs (being W*H and W*H+1)
