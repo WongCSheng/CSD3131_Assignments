@@ -1,3 +1,17 @@
+/**
+ * @file Greedy_algo_Seam_Carving.cpp
+ * @author Wong Chong Sheng (w.chongsheng@digipen.edu)
+ * @brief Seam carving using greedy algorithm.
+ *      This implementation uses OpenCV to compute the energy map and find seams in an image.
+ *      The program reads an image, computes its energy map, finds the seam with the least energy,
+ *      and removes it from the image. The process can be repeated to remove multiple seams.
+ *      The user can specify the number of seams to remove and the orientation (vertical or horizontal).
+ * @date 2026-11-17
+ * 
+ * @copyright Copyright (c) 2026
+ * 
+ */
+
 // OpenCV includes
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
@@ -12,9 +26,10 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 
 /**
- * @brief Computes the energy map of an image.
+ * @brief Computes the energy map of an image. Using OpenCV lib
  * 
  * @param image 
  * @return cv::Mat 
@@ -42,6 +57,28 @@ cv::Mat computeEnergy(const cv::Mat& image)
     energy.convertTo(energy, CV_64F);
 
     return energy;
+}
+
+/**
+ * @brief Load image using stb_image and convert it to energy map format.
+ * 
+ * @param imagePath 
+ * @return energy_map::Image 
+ */
+energy_map::Image stbiImagetoEnergyMap(const char* imagePath)
+{
+    energy_map::Image energyImage;
+    if(read_image(energyImage, imagePath))
+    {
+        std::cout << "Image read successfully: " << imagePath << std::endl;
+    }
+    else
+    {
+        std::cerr << "Failed to read image: " << imagePath << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    return energyImage;
 }
 
 /**
@@ -198,18 +235,46 @@ cv::Mat carveWidth(const cv::Mat& image, int numSeams, bool orientation)
     return carvedImage;
 }
 
-int main(int argc, char** argv)
+/**
+ * @brief Mouse callback function for opencv window.
+ * 
+ */
+cv::MouseCallback mouseCallback = [](int event, int x, int y, int flags, void* userdata)
 {
-    std::string imagePath = (argc > 1) ? argv[1] : "input.jpg";
-    cv::Mat image = cv::imread(imagePath);
-
-    if (image.empty()) {
-        std::cerr << "Could not open or find the image: " << imagePath << std::endl;
-        return -1;
+    if (event == cv::EVENT_LBUTTONDOWN)
+    {
+        // Mouse button pressed, do something...
     }
+};
 
+cv::ButtonCallback buttonCallback = [](int state, void* userdata)
+{
+    std::string imagePath;
+    std::vector<std::string> imageFiles;
+    std::filesystem::path image_Folder = std::filesystem::current_path().parent_path() / "img";
+    std::cout << "Image folder path: " << image_Folder << std::endl;
+    short iter = 1;
+    for (const auto& entry : std::filesystem::directory_iterator(image_Folder))
+    {
+        if(entry.is_regular_file())
+        {
+            imageFiles.push_back(entry.path().string());
+            std::cout << iter << ". " << entry.path().filename().string() << std::endl;
+            iter++;
+        }
+    }
+    std::cout << "Input which image to use." << std::endl;
+};
 
-    int seamsToRemove = 1; // number of pixels to carve
+void main()
+{
+    // Create a window to display the image
+    cv::namedWindow("Image Viewer", cv::WindowFlags::WINDOW_NORMAL);
+    cv::setMouseCallback("Image Viewer", mouseCallback);
+    cv::createTrackbar("Seams to Remove", "Image Viewer", nullptr, 100);
+    cv::createButton("Import image", buttonCallback, nullptr, cv::QT_PUSH_BUTTON);
+
+    int seamsToRemove = 0; // number of pixels to carve
     bool orientation = true; // true for vertical seam, false for horizontal seam
 
     std::cout << "Selected orientation (1 for vertical, 0 for horizontal): ";
@@ -228,5 +293,4 @@ int main(int argc, char** argv)
     cv::imwrite("carved_greedy.jpg", greedyResult);
 
     std::cout << "Images saved as carved_greedy.jpg and carved_dp.jpg" << std::endl;
-    return 0;
 }
