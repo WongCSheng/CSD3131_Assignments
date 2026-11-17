@@ -96,3 +96,16 @@ int generateEnergyValue(const imgData& imd, int x, int y)
 
     return dx+dy;
 }
+
+void imgData::createMap(int width, int height, int chara, std::vector<unsigned char> & data_new) {
+    //Assign values to the respective data member
+    w = width;
+    h = height;
+    ch = chara;
+    //copy each element to data 
+    for (int i = 0; i < data_new.size(); i++) {
+        data.push_back(data_new[i]);
+    }
+
+
+}

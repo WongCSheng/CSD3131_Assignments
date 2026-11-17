@@ -7,6 +7,7 @@
 //References for time
 //https://dilipkumar.medium.com/c-chrono-for-time-71b73d9e33f6
 //https://en.cppreference.com/cpp/chrono/duration
+//https://pyimagesearch.com/2017/01/23/seam-carving-with-opencv-python-and-scikit-image/ - to reference the image output of the energy and seams
 
 
 #include <iostream>
@@ -15,13 +16,14 @@
 #include <climits>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 //type declarations
 using EnergyRow = std::vector<int>;
 using EnergyMap = std::vector<EnergyRow>;
 
 // y/x convention
-EnergyMap buildEnergyMap(const imgData& imd)
+EnergyMap buildEnergyMap(const imgData& imd, int& max)
 {
     int w = imd.getWidth();
     int h = imd.getHeight();
@@ -33,10 +35,71 @@ EnergyMap buildEnergyMap(const imgData& imd)
         for (int j=0; j < w; j++)
         {
             em[i][j] = generateEnergyValue(imd, j,i);
+            //Get the max energy value
+            if (max < std::abs(em[i][j])) {
+                max = std::abs(em[i][j]);
+            }
+
         }
     }
 
     return em;
+}
+
+void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std::string& path) {
+    int w = imd.getWidth();
+    int h = imd.getHeight();
+
+    std::vector<std::vector<double>> norm{};
+    norm.reserve(h);
+
+    for (int i = 0; i < h; i++)
+    {
+        norm[i].reserve(w);
+        for (int j = 0; j < w; j++)
+        {
+            norm[i][j] =(std::fabs(static_cast<double>(em[i][j])) / static_cast<double>(max));
+            //pow is needed for gamma correction (to make the faint edges more obvious)
+            norm[i][j] = std::pow(norm[i][j], 0.3);
+            //Multiply by 255 (0 - 255) color
+            norm[i][j] *= 255.0;
+            
+        }
+    
+    }
+    //Create the data for imgdata with the gradient values
+    std::vector<unsigned char> gradient_data;
+
+    for (int i = 0; i < h; i++)
+    {
+        //int seampos = seam[i]; // get position of seam for this row
+        for (int j = 0; j < w; j++)
+        {
+            //Get the value
+            int val = norm[i][j];
+            //clamp it between 0 to 255
+            if (val > 255) {
+                val == 255;
+            }
+            else if (val < 0) {
+                val = 0;
+            }
+            //Set rgb to value for greyscale
+            gradient_data.push_back(val);
+            gradient_data.push_back(val);
+            gradient_data.push_back(val);
+            //Make alpha value to be 1 no matter
+            if (imd.getCh() == 4) { gradient_data.push_back(1); }
+        }
+    }
+    //Create an imgdata
+    imgData gradient;
+    //Set the values based on imd and the gradient data
+    gradient.createMap(imd.getWidth(), imd.getHeight(), imd.getCh(), gradient_data);
+    //Write out as image
+    gradient.writeImg(path);
+
+
 }
 
 // ---------- Graph Cut method ----------
@@ -196,8 +259,8 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
 }
 // ---------- Graph Cut method ----------
 
-// ./q4 ../img/BroadwayTowerSeamCarvingA.png 100 broadway.png
-// ./q4 ../img/content-aware-scale-cat.png 100 cat.png
+// ./q4 ../img/BroadwayTowerSeamCarvingA.png 100 broadway.png broadway_energy.png
+// ./q4 ../img/content-aware-scale-cat.png 100 cat.png cat_energy_png
 // main takes 2 args, first is path to image, 2nd is number of seams, 3rd is output path
 int main(int argc, char *argv[])
 {
@@ -218,8 +281,11 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    int max = 0;
     // Step 2: Apply the energy filter to it
-    EnergyMap em = buildEnergyMap(imd);
+    EnergyMap em = buildEnergyMap(imd, max);
+
+    energyMapOutput(imd, max, em, argv[4]);
 
     // output energy map here to see what it looks like
     
@@ -231,6 +297,7 @@ int main(int argc, char *argv[])
 
     for (int i=0; i < maxW; i++)
     {
+        
         //Record the start time
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         std::cout << "------------------------------ITERATION "<< i +1<<"-------------------------------------\n";
@@ -256,7 +323,7 @@ int main(int argc, char *argv[])
 
         // rebuild the energy map for the next iteration
         //std::cout << "rebuilding energy map for next iteration\n";
-        em = buildEnergyMap(imd);
+        em = buildEnergyMap(imd, max);
         //Record the end time
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
