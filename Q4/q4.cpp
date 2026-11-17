@@ -9,6 +9,7 @@
 #include <queue>
 #include <climits>
 #include <algorithm>
+#include <chrono>
 
 //type declarations
 using EnergyRow = std::vector<int>;
@@ -70,6 +71,8 @@ int s;                                 // source, a node connected by an inf-cap
 int t;                                 // sink, a node w an inf-cap edge from last col's px in every row
 
 const long long INF = LLONG_MAX / 4; // bigger than any possible seam cost
+
+double totalms;
 
 // Add Edge Helper Function
 void addEdge(int u, int v, long long cap) {
@@ -216,7 +219,10 @@ int main(int argc, char *argv[])
     // Step 3: Perform Graph Cut & Discard the removed seams
     for (int i=0; i < std::stoi(argv[2]); i++)
     {
-        std::cout << "this is iteration " << i << "of " << std::stoi(argv[2]) << std::endl;
+        //Record the start time
+        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+        std::cout << "------------------------------ITERATION "<< i<<"-------------------------------------\n";
+        std::cout << "this is iteration " << i << " of " << std::stoi(argv[2]) << std::endl;
         // compute s and t
         // they can have arbitrary node IDs, but since 0 and 1 are taken, 
         // they take the first 2 out of bounds IDs (being W*H and W*H+1)
@@ -239,6 +245,18 @@ int main(int argc, char *argv[])
         // rebuild the energy map for the next iteration
         std::cout << "rebuilding energy map for next iteration\n";
         em = buildEnergyMap(imd);
+        //Record the end time
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+        //Cast the difference between start to end 
+        double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+        
+        std::cout << "Time Elapsed for iteration " << i << ": " << duration<<" msec" << std::endl;
+        std::cout << "------------------------------------------------------------------------------\n";
+
+        //Add it up to total
+        totalms += duration;
+
     }
 
     // Step 4: Output Image
@@ -252,4 +270,9 @@ int main(int argc, char *argv[])
     std::cout << "writing image...\n";
     std::string imgout = argv[3];
     imd.writeImg(imgout);
+
+    std::cout << "Time Elapsed Average: ";
+    //Get the average of the total
+    std::cout<< totalms / std::stoi(argv[2]) << " ms";
+    std::cout << std::endl;
 }
