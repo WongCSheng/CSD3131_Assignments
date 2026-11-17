@@ -17,14 +17,16 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core.hpp>
-
-// Energy map includes
-#include "../shared/energy_map.h"
+#include <opencv2/imgcodecs.hpp>
 
 // Standard Library
 #include <vector>
 #include <algorithm>
-#include "HelpherFunc.hpp"
+#include <string>
+
+// Custom helper functions
+#include "CVHelperFunc.hpp"
+//#include "STBHelperFunc.hpp"
 
 /**
  * @brief Computes the energy map of an image. Using OpenCV lib
@@ -55,28 +57,6 @@ cv::Mat computeEnergy(const cv::Mat& image)
     energy.convertTo(energy, CV_64F);
 
     return energy;
-}
-
-/**
- * @brief Load image using stb_image and convert it to energy map format.
- * 
- * @param imagePath 
- * @return energy_map::Image 
- */
-energy_map::Image stbiImagetoEnergyMap(const char* imagePath)
-{
-    energy_map::Image energyImage;
-    if(read_image(energyImage, imagePath))
-    {
-        std::cout << "Image read successfully: " << imagePath << std::endl;
-    }
-    else
-    {
-        std::cerr << "Failed to read image: " << imagePath << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    
-    return energyImage;
 }
 
 /**
@@ -233,31 +213,74 @@ cv::Mat carveWidth(const cv::Mat& image, int numSeams, bool orientation)
     return carvedImage;
 }
 
-void main()
+// Container of images from img folder
+std::vector<OpenCVImageData> CVimages;
+std::vector<imgData> stbImages;
+mouse mouseData;
+
+int main()
 {
     // Create a window to display the image
-    cv::namedWindow("Image Viewer", cv::WindowFlags::WINDOW_NORMAL);
+    cv::namedWindow("Image Viewer", cv::WindowFlags::WINDOW_AUTOSIZE);
     cv::setMouseCallback("Image Viewer", mouseCallback);
-    cv::createTrackbar("Seams to Remove", "Image Viewer", nullptr, 100);
-    cv::createButton("Import image", buttonCallback, nullptr, cv::QT_PUSH_BUTTON);
+
+    loadImages();
 
     int seamsToRemove = 0; // number of pixels to carve
     bool orientation = true; // true for vertical seam, false for horizontal seam
 
-    std::cout << "Selected orientation (1 for vertical, 0 for horizontal): ";
-    std::cin >> orientation;
-    std::cout << "\nNumber of seams to remove: ";
-    std::cin >> seamsToRemove;
+    // Trackbar settings
+    cv::TrackbarCallback onTrackbar = [](int pos, void* userdata)
+    {
+        *static_cast<int*>(userdata) = pos;
+    };
+    cv::createTrackbar("Seams to Remove", "Image Viewer", nullptr, 500, onTrackbar, &seamsToRemove);
 
-    // Benchmark Greedy
-    auto startGreedy = std::chrono::high_resolution_clock::now();
-    cv::Mat greedyResult = carveWidth(image, seamsToRemove, orientation);
-    auto endGreedy = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> greedyTime = endGreedy - startGreedy;
+    char entered_key = 0;
+    while (std::cin >> entered_key)
+    {
+        if (entered_key == 'q' || entered_key == 'Q')
+        {
+            std::cout << "Exiting program." << std::endl;
+            break;
+        }
 
-    std::cout << "Greedy Execution Time: " << greedyTime.count() << " ms\n";
+        // Load the selected image
+        if (static_cast<size_t>(entered_key - '0') > 0 && static_cast<size_t>(entered_key - '0') <= CVimages.size())
+        {
+            size_t idx = static_cast<size_t>(entered_key - '1');
+            cv::Mat image = cv::imread(CVimages[idx].path);
+            if (image.empty())
+            {
+                std::cerr << "Failed to load image: " << CVimages[idx].path << std::endl;
+                break;
+            }
 
-    cv::imwrite("carved_greedy.jpg", greedyResult);
+            std::cout << "Selected orientation (1 for vertical, 0 for horizontal): ";
+            std::cin >> orientation;
 
-    std::cout << "Images saved as carved_greedy.jpg and carved_dp.jpg" << std::endl;
+            // Display the original image
+            cv::imshow("Image Viewer", image);
+
+            // Benchmark Greedy
+            auto startGreedy = std::chrono::high_resolution_clock::now();
+            cv::Mat greedyResult = carveWidth(image, seamsToRemove, orientation);
+            auto endGreedy = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> greedyTime = endGreedy - startGreedy;
+
+            std::cout << "Greedy Execution Time: " << greedyTime.count() << " ms\n";
+            std::cout << "Showing carved image using Greedy algorithm..." << std::endl;
+
+            cv::imshow("Greedy Carved Image", greedyResult);
+            cv::imwrite("carved_greedy.jpg", greedyResult);
+
+            std::cout << "Images saved as carved_greedy.jpg and carved_dp.jpg\n Press a key to continue" << std::endl;
+
+            // Wait for use to press a key
+            cv::waitKey();
+            entered_key = -1; // Reset entered_key to avoid reloading the same image
+        }
+    }
+
+    return 0;
 }

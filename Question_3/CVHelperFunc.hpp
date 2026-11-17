@@ -1,20 +1,37 @@
 /**
- * @file HelpherFunc.hpp
+ * @file CVHelperFunc.hpp
  * @author Wong Chong Sheng (w.chongsheng@digipen.edu)
- * @brief Extra functions to assist in file management and user input.
- * @date 17-11-2026
+ * @brief Helper functions for OpenCV image processing, including mouse and button callbacks for user interaction.
+ * @date 18-11-2026
  * 
  * @copyright Copyright (c) 2026
  * 
  */
 
-#pragma once
+#ifndef CVHELPERFUNC_HPP
+#define CVHELPERFUNC_HPP
 
 #include <iostream>
 #include <filesystem>
 #include <chrono>
 
-Imagefile image = {"", "", 0};
+#include "../lib/energy.h"
+
+// Data structure for storing image using OpenCV
+struct OpenCVImageData
+{
+    std::string path;
+    cv::Mat image;
+};
+
+struct mouse
+{
+    int x = 0, y = 0;
+};
+
+// Containers for image data from img folder
+extern std::vector<OpenCVImageData> CVimages;
+extern mouse mouseData;
 
 /**
  * @brief Mouse callback function for opencv window.
@@ -28,9 +45,8 @@ cv::MouseCallback mouseCallback = [](int event, int x, int y, int flags, void* u
     }
 };
 
-cv::ButtonCallback buttonCallback = [](int state, void* userdata)
+void loadImages()
 {
-    std::vector<std::string> imageFiles;
     std::filesystem::path image_Folder = std::filesystem::current_path().parent_path() / "img";
     std::cout << "Image folder path: " << image_Folder << std::endl;
     short iter = 1;
@@ -43,9 +59,11 @@ cv::ButtonCallback buttonCallback = [](int state, void* userdata)
     int selectedImageIndex = -1;
     for (const auto& entry : std::filesystem::directory_iterator(image_Folder))
     {
-        if(entry.is_regular_file())
+        if(entry.is_regular_file() && cv::haveImageReader(entry.path().string()))
         {
-            imageFiles.push_back(entry.path().string());
+            OpenCVImageData imageData;
+            imageData.path = entry.path().string();
+            CVimages.push_back(imageData);
             std::cout << iter << ". " << entry.path().filename().string() << std::endl;
             iter++;
         }
@@ -53,11 +71,15 @@ cv::ButtonCallback buttonCallback = [](int state, void* userdata)
     std::cout << "Input which image to use." << std::endl;
     std::cin >> selectedImageIndex;
 
-    while(selectedImageIndex < 1 || selectedImageIndex > imageFiles.size())
+    while(selectedImageIndex < 1 || selectedImageIndex > CVimages.size())
     {
-        std::cerr << "Invalid selection. Please select a number between 1 and " << imageFiles.size() << std::endl;
+        std::cerr << "Invalid selection. Please select a number between 1 and " << CVimages.size() << std::endl;
         std::cin >> selectedImageIndex;
     }
 
-    image.path = imageFiles[selectedImageIndex - 1];
+    OpenCVImageData imageData;
+    imageData.path = CVimages[selectedImageIndex - 1].path;
+    CVimages.push_back(imageData);
 };
+
+#endif // CVHELPERFUNC_HPP

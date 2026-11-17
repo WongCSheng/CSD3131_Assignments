@@ -1,5 +1,10 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
+
+set "ROOT=%~dp0"
+set "BUILD_DIR=%ROOT%build"
+set "DEPENDENCIES_DIR=%ROOT%dependencies"
+set "EXE_PATH=%BUILD_DIR%\Greedy_algo_Seam_Carving.exe"
 
 set "CALLER="
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command ^
@@ -25,17 +30,19 @@ if exist build (
 if exist dependencies (
     rmdir dependencies /s /q
 )
+endlocal
 goto :eof
 
 :from_ps
 echo Detected PowerShell invocation. Cleaning up the build environment...
-if exist build (
-    rmdir build /s /q
+if exist %BUILD_DIR% (
+    rmdir /s /q %BUILD_DIR%
 )
-if exist dependencies (
-    rmdir dependencies /s /q
+if exist %DEPENDENCIES_DIR% (
+    rmdir /s /q %DEPENDENCIES_DIR%
 )
-if exist Greedy_algo_Seam_Carving.exe (
-    del Greedy_algo_Seam_Carving.exe
+if exist %EXE_PATH% (
+    del %EXE_PATH%
 )
+endlocal
 goto :eof
