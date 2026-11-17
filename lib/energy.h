@@ -102,6 +102,26 @@ public:
      *  true if success, false otherwise
      */
     bool writeImg(const std::string& path) const;
+
+    /**
+     * @brief
+     *  Create energy map based on values
+     * @param w
+     *  width
+     * @param h
+     *  height
+     * @param ch
+     *  number of rgba
+     * @param data
+     *  data of the image
+     */
+    void createMap(int w, int h, int ch, std::vector<unsigned char>& data);
+    /**
+     * @brief Get the Ch object
+     *
+     * @return int
+     */
+    int getCh() const { return ch; };
 };
 
 
