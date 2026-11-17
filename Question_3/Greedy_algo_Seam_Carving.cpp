@@ -22,11 +22,9 @@
 #include "../shared/energy_map.h"
 
 // Standard Library
-#include <iostream>
 #include <vector>
 #include <algorithm>
-#include <chrono>
-#include <filesystem>
+#include "HelpherFunc.hpp"
 
 /**
  * @brief Computes the energy map of an image. Using OpenCV lib
@@ -234,37 +232,6 @@ cv::Mat carveWidth(const cv::Mat& image, int numSeams, bool orientation)
 
     return carvedImage;
 }
-
-/**
- * @brief Mouse callback function for opencv window.
- * 
- */
-cv::MouseCallback mouseCallback = [](int event, int x, int y, int flags, void* userdata)
-{
-    if (event == cv::EVENT_LBUTTONDOWN)
-    {
-        // Mouse button pressed, do something...
-    }
-};
-
-cv::ButtonCallback buttonCallback = [](int state, void* userdata)
-{
-    std::string imagePath;
-    std::vector<std::string> imageFiles;
-    std::filesystem::path image_Folder = std::filesystem::current_path().parent_path() / "img";
-    std::cout << "Image folder path: " << image_Folder << std::endl;
-    short iter = 1;
-    for (const auto& entry : std::filesystem::directory_iterator(image_Folder))
-    {
-        if(entry.is_regular_file())
-        {
-            imageFiles.push_back(entry.path().string());
-            std::cout << iter << ". " << entry.path().filename().string() << std::endl;
-            iter++;
-        }
-    }
-    std::cout << "Input which image to use." << std::endl;
-};
 
 void main()
 {
