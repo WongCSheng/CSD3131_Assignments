@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
         //Cast the difference between start to end 
         double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
         
-        std::cout << "Time Elapsed for iteration " << i << ": " << duration<<" msec" << std::endl;
+        std::cout << "Time Elapsed for iteration " << i+ 1<< ": " << duration<<" msec" << std::endl;
         std::cout << "------------------------------------------------------------------------------\n";
 
         //Add it up to total
