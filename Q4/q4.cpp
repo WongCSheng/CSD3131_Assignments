@@ -46,7 +46,7 @@ EnergyMap buildEnergyMap(const imgData& imd, int& max)
     return em;
 }
 
-void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std::string& path) {
+void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std::string& path, imgData& gradient) {
     int w = imd.getWidth();
     int h = imd.getHeight();
 
@@ -72,7 +72,6 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
 
     for (int i = 0; i < h; i++)
     {
-        //int seampos = seam[i]; // get position of seam for this row
         for (int j = 0; j < w; j++)
         {
             //Get the value
@@ -93,13 +92,78 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
         }
     }
     //Create an imgdata
-    imgData gradient;
+    //imgData gradient;
     //Set the values based on imd and the gradient data
     gradient.createMap(imd.getWidth(), imd.getHeight(), imd.getCh(), gradient_data);
     //Write out as image
     gradient.writeImg(path);
 
 
+}
+
+void seamOutput(const imgData& imd, const std::string& path, std::vector<std::vector<int>>& allseams) {
+    int w = imd.getWidth();
+    int h = imd.getHeight();
+
+    std::vector<unsigned char> greyscale_data = imd.getData();
+
+    std::vector<unsigned char> gradient_data;
+
+    for (int i = 0; i < h; i++)
+    {
+        std::vector<int> seampos = allseams[i]; // get the seam col data
+        for (int j = 0; j < w; j++)
+        {
+            //if value is not inside the vector, just get the greyscale value as it is not a seam
+            if (std::find(seampos.begin(), seampos.end(), j) == seampos.end()) {
+                size_t pos = (i * w + j) * imd.getCh();
+                gradient_data.push_back(greyscale_data[pos]);
+                gradient_data.push_back(greyscale_data[pos +1]);
+                gradient_data.push_back(greyscale_data[pos +2]);
+                
+                if (imd.getCh() == 4) { gradient_data.push_back(greyscale_data[pos+3]); } 
+                continue;
+            }
+            
+            //Set rgb to value for greyscale
+            gradient_data.push_back(255);
+            gradient_data.push_back(0);
+            gradient_data.push_back(0);
+            //Make alpha value to be 255 no matter
+            if (imd.getCh() == 4) { gradient_data.push_back(255); } // alpha channel is stored 0-255 like the rest
+        }
+    }
+    //Create an imgdata
+    imgData gradient;
+    //Set the values based on imd and the gradient data
+    gradient.createMap(imd.getWidth(), imd.getHeight(), imd.getCh(), gradient_data);
+    //Write out as image
+    gradient.writeImg(path);
+}
+
+//Add the current seams to the combined total seams
+void addSeamsToAll(std::vector<std::vector<int>>& allseams, int h, std::vector<int>& seams) {
+    for (int i = 0; i < h; i++) {
+        allseams[i].push_back(seams[i]);
+    }
+}
+//Get the original indexes with the help of origin map
+std::vector<int> getOriginal(std::vector<int>& seams, int w, int h, std::vector<std::vector<int>>& origin_map) {
+    std::vector<int> tmpVec;
+    for (int i = 0; i < h; i++) {
+        int c = seams[i];
+        int originalc = origin_map[i][c];
+        tmpVec.push_back(originalc);
+    }
+    return tmpVec;
+}
+
+//Shrink the origin map to match the removal of seams and indexing
+void shrinkOriginMap(std::vector<std::vector<int>>& origin_map, std::vector<int>& seams, int w, int h) {
+    for (int i = 0; i < h; i++) {
+        int c = seams[i];
+        origin_map[i].erase(origin_map[i].begin() + c);
+    }
 }
 
 // ---------- Graph Cut method ----------
@@ -297,16 +361,16 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
 }
 // ---------- Graph Cut method ----------
 
-// ./q4 ../img/BroadwayTowerSeamCarvingA.png 100 broadway.png broadway_energy.png
-// ./q4 ../img/content-aware-scale-cat.png 100 cat.png cat_energy_png
-// main takes: image path, number of seams, output path, energy map output path, optional "h" for horizontal seams
-// ./q4 ../img/content-aware-scale-cat.png 50 cat_h.png cat_energy.png h
+// ./q4 ../img/BroadwayTowerSeamCarvingA.png 100 broadway.png broadway_energy.png broadway_seam.png
+// ./q4 ../img/content-aware-scale-cat.png 100 cat.png cat_energy.png cat_seam.png
+// main takes: image path, number of seams, output path, energy map output path, seam output path, optional "h" for horizontal seams
+// ./q4 ../img/content-aware-scale-cat.png 50 cat_h.png cat_energy.png cat_seam.png h
 int main(int argc, char *argv[])
 {
 	//std::cout << "hello world\n";
     //energy_map::test();
     //test_stb_included();
-
+    
     // Step 1: Read image with stb_image
     // energy_map::Image image;
     // if (!energy_map::read_image(image, "../img/BroadwayTowerSeamCarvingA.png")) {
@@ -324,13 +388,30 @@ int main(int argc, char *argv[])
     // Step 2: Apply the energy filter to it
     EnergyMap em = buildEnergyMap(imd, max);
 
+    imgData seamimd{};
+
     // energy map is output in the original orientation
-    energyMapOutput(imd, max, em, argv[4]);
+    energyMapOutput(imd, max, em, argv[4], seamimd);
+
+    //Create a origin map to store the original column indexes
+    std::vector<std::vector<int>> origin_map{};
+    origin_map.resize(imd.getHeight());
+    
+    //Create all seams to store all the seams for the output
+    std::vector<std::vector<int>> allseams{};
+    allseams.resize(imd.getHeight());
+    for (int r = 0; r < imd.getHeight(); r++) {
+        origin_map[r].resize(imd.getWidth());
+        for (int c = 0; c < imd.getWidth(); c++) {
+            origin_map[r][c] = c;
+        }
+            
+    }
 
     // optional 5th arg "h" = remove horizontal seams. A horizontal seam in the original
     // image is a vertical seam in the transposed image, so we transpose, carve vertically,
     // then transpose back at the end.
-    bool horizontal = (argc > 5 && std::string(argv[5]) == "h");
+    bool horizontal = (argc > 6 && std::string(argv[6]) == "h");
     if (horizontal)
     {
         imd.transpose();
@@ -363,6 +444,15 @@ int main(int argc, char *argv[])
         // max flow, bfs, seam extraction
         //std::cout << "finding a seam...\n";
         std::vector<int> seam = findSeam(imd, em);
+        
+        //Get the original coordinates
+        std::vector<int> originalco = getOriginal(seam, imd.getWidth(), imd.getHeight(), origin_map);
+
+        //add seams to allseam list
+        addSeamsToAll(allseams, imd.getHeight(), originalco);
+
+        //Shrink the origin_map
+        shrinkOriginMap(origin_map, seam, imd.getWidth(), imd.getHeight());
 
         // remove seam from image
         //std::cout << "removing a seam from img...\n";
@@ -390,14 +480,15 @@ int main(int argc, char *argv[])
     // if (test_img != nullptr) {
     //     energy_map::write_image("abc.png", image.img_width, image.img_height, image.img_channels, test_img);
     // }
-
+    
     // free(test_img);
     // free_image(image);
     std::cout << "writing image...\n";
     if (horizontal) imd.transpose(); // back to the original orientation
     std::string imgout = argv[3];
     imd.writeImg(imgout);
-
+    //Output the seams 
+    seamOutput(seamimd, argv[5], allseams);
     std::cout << "Time Elapsed Average: ";
     //Get the average of the total
     std::cout<< totalms / maxW << " ms"; // changed to maxW here instead of the arg because number of seams
