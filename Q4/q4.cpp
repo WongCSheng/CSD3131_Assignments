@@ -190,8 +190,17 @@ void build_edge_adj(const imgData& imd, const EnergyMap& em) {
 
 // Dinic: BFS once to label nodes by distance from s, then DFS pushes many paths
 // along edges that go exactly one level deeper. Repeat until t is unreachable.
+// Compared to Edmonds-Karp (one BFS per augmenting path), one BFS here is reused for many paths,
+// which is why it is a lot faster on this graph.
+//
+// level[u] = BFS distance from s to u in the residual graph (-1 = not reachable)
+// it[u]    = index of the next edge in adj[u] still worth trying (the "current arc").
+//            Edges before it[u] are saturated or lead to dead ends, so they are never retried
+//            within the same phase.
 std::vector<int> level, it;
 
+// Builds the level graph. Only residual edges (cap > 0) count.
+// Returns false when t can no longer be reached = no augmenting path left = flow is maximum.
 bool bfsLevel(int V) {
     level.assign(V, -1);
     std::queue<int> q;
@@ -200,6 +209,7 @@ bool bfsLevel(int V) {
         int u = q.front(); q.pop();
         for (int ei : adj[u]) {
             int v = edges[ei].to;
+            // residual capacity left and not visited yet -> v is one level deeper than u
             if (edges[ei].cap > 0 && level[v] < 0) {
                 level[v] = level[u] + 1;
                 q.push(v);
@@ -209,26 +219,36 @@ bool bfsLevel(int V) {
     return level[t] >= 0;
 }
 
+// Pushes one augmenting path from u to t, along edges that go exactly one level deeper.
+// f = the bottleneck (smallest residual capacity) seen so far along the path.
+// Returns the amount of flow pushed, or 0 if u cannot reach t anymore in this level graph.
 long long dfsPush(int u, long long f) {
-    if (u == t) return f;
+    if (u == t) return f;   // reached the sink: f is the bottleneck of the whole path
     for (int &k = it[u]; k < (int)adj[u].size(); k++) {   // it[u] remembers dead ends
         int ei = adj[u][k], v = edges[ei].to;
+        // only follow edges with capacity left that go exactly one level deeper
         if (edges[ei].cap > 0 && level[v] == level[u] + 1) {
             long long d = dfsPush(v, std::min(f, edges[ei].cap));
             if (d > 0) {
-                edges[ei].cap     -= d;
-                edges[ei ^ 1].cap += d;   // reverse edge sits at index ^ 1
+                // on the way back up, update the residual graph:
+                edges[ei].cap     -= d;   // less room going forward
+                edges[ei ^ 1].cap += d;   // reverse edge sits at index ^ 1 (edges are stored in pairs),
+                                          // so flow can be undone later if a better route is found
                 return d;
             }
+            // d == 0: v is a dead end, so the loop's k++ moves past this edge and it[u] keeps it skipped
+            // (on success we return without k++, so the same edge is retried in case it still has capacity)
         }
     }
-    return 0;
+    return 0;   // no edge from u leads to t
 }
 
+// Runs Dinic: each outer iteration is one "phase" (rebuild levels, then saturate the level graph).
+// Stops once bfsLevel finds no path, at which point the flow is maximum = min cut value.
 void maxFlow(int V) {
     while (bfsLevel(V)) {
-        it.assign(V, 0);
-        while (dfsPush(s, INF) > 0) {}
+        it.assign(V, 0);                       // reset current-arc pointers for the new phase
+        while (dfsPush(s, INF) > 0) {}         // keep pushing paths until the level graph is blocked
     }
 }
 
@@ -238,7 +258,8 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
     std::cout << "calling maxflow\n";
     maxFlow(V);
 
-    // BFS from s over leftover capacity = source side of the cut
+    // BFS from s over leftover capacity = source side (S) of the min cut.
+    // After max flow, every edge crossing from S to the rest is saturated; those are the cut edges.
     std::vector<bool> reach(V, false);
     std::queue<int> q;
     q.push(s); reach[s] = true;
@@ -250,7 +271,9 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
         }
     }
 
-    // seam pixel in each row = last reachable column
+    // seam pixel in each row = last reachable column (rightmost pixel in S).
+    // The cut edge in each row is (i,j)->(i,j+1) with j in S and j+1 not, so j is the pixel whose
+    // removal cost was paid. The infinite west edges guarantee S is contiguous from column 0 in each row.
     std::vector<int> seam(H, 0);
     for (int i = 0; i < H; i++)
         for (int j = 0; j < W; j++)
