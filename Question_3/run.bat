@@ -48,6 +48,7 @@ goto :eof
 echo Launched from WSL (%CALLER%)
 if not exist %EXE_PATH% (
     echo Executable not found. Building the project...
+    mkdir output
     make all
 ) else (
     echo Executable found. Running the program...
@@ -61,6 +62,7 @@ echo Launched from PowerShell (%CALLER%)
 
 if not exist "%EXE_PATH%" (
     echo Executable not found. Compiling with g++...
+    mkdir output
     g++ -std=c++20 -O2 -Wall -Wextra ^
         "%ROOT%Greedy_algo_Seam_Carving.cpp" ^
         -I"%ROOT%." ^

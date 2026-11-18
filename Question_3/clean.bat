@@ -5,6 +5,7 @@ set "ROOT=%~dp0"
 set "BUILD_DIR=%ROOT%build"
 set "DEPENDENCIES_DIR=%ROOT%dependencies"
 set "EXE_PATH=%BUILD_DIR%\Greedy_algo_Seam_Carving.exe"
+set "OUTPUT_DIR=%ROOT%output"
 
 set "CALLER="
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command ^
@@ -30,6 +31,9 @@ if exist build (
 if exist dependencies (
     rmdir dependencies /s /q
 )
+if exist output (
+    rmdir output /s /q
+)
 endlocal
 goto :eof
 
@@ -43,6 +47,9 @@ if exist %DEPENDENCIES_DIR% (
 )
 if exist %EXE_PATH% (
     del %EXE_PATH%
+)
+if exist %OUTPUT_DIR% (
+    rmdir /s /q %OUTPUT_DIR%
 )
 endlocal
 goto :eof
