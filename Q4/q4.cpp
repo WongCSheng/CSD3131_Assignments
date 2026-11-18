@@ -50,8 +50,8 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
     int w = imd.getWidth();
     int h = imd.getHeight();
 
-    std::vector<std::vector<double>> norm{};
-    norm.reserve(h);
+    std::vector<std::vector<double>> norm(h, std::vector<double>(w));
+    //norm.reserve(h);
 
     for (int i = 0; i < h; i++)
     {
@@ -79,7 +79,7 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
             int val = norm[i][j];
             //clamp it between 0 to 255
             if (val > 255) {
-                val == 255;
+                val = 255;
             }
             else if (val < 0) {
                 val = 0;
@@ -88,8 +88,8 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
             gradient_data.push_back(val);
             gradient_data.push_back(val);
             gradient_data.push_back(val);
-            //Make alpha value to be 1 no matter
-            if (imd.getCh() == 4) { gradient_data.push_back(1); }
+            //Make alpha value to be 255 no matter
+            if (imd.getCh() == 4) { gradient_data.push_back(255); } // alpha channel is stored 0-255 like the rest
         }
     }
     //Create an imgdata
@@ -261,7 +261,8 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
 
 // ./q4 ../img/BroadwayTowerSeamCarvingA.png 100 broadway.png broadway_energy.png
 // ./q4 ../img/content-aware-scale-cat.png 100 cat.png cat_energy_png
-// main takes 2 args, first is path to image, 2nd is number of seams, 3rd is output path
+// main takes: image path, number of seams, output path, energy map output path, optional "h" for horizontal seams
+// ./q4 ../img/content-aware-scale-cat.png 50 cat_h.png cat_energy.png h
 int main(int argc, char *argv[])
 {
 	std::cout << "hello world\n";
@@ -285,15 +286,23 @@ int main(int argc, char *argv[])
     // Step 2: Apply the energy filter to it
     EnergyMap em = buildEnergyMap(imd, max);
 
+    // energy map is output in the original orientation
     energyMapOutput(imd, max, em, argv[4]);
 
-    // output energy map here to see what it looks like
-    
+    // optional 5th arg "h" = remove horizontal seams. A horizontal seam in the original
+    // image is a vertical seam in the transposed image, so we transpose, carve vertically,
+    // then transpose back at the end.
+    bool horizontal = (argc > 5 && std::string(argv[5]) == "h");
+    if (horizontal)
+    {
+        imd.transpose();
+        em = buildEnergyMap(imd, max); // old map has the wrong shape after transposing
+    }
 
     // Step 3: Perform Graph Cut & Discard the removed seams
     // restrict actual seam count here depending on picture's dimensions, because if it goes beyond width, segfault happens
     int seamCount = std::stoi(argv[2]);
-    int maxW = (seamCount > imd.getWidth() ? imd.getWidth() : seamCount);
+    int maxW = (seamCount >= imd.getWidth() ? imd.getWidth() - 1 : seamCount);
 
     for (int i=0; i < maxW; i++)
     {
@@ -347,11 +356,12 @@ int main(int argc, char *argv[])
     // free(test_img);
     // free_image(image);
     std::cout << "writing image...\n";
+    if (horizontal) imd.transpose(); // back to the original orientation
     std::string imgout = argv[3];
     imd.writeImg(imgout);
 
     std::cout << "Time Elapsed Average: ";
     //Get the average of the total
-    std::cout<< totalms / std::stoi(argv[2]) << " ms";
+    std::cout<< totalms / maxW << " ms"; // changed to maxW here instead of the arg because number of seams
     std::cout << std::endl;
 }

@@ -122,6 +122,12 @@ public:
      * @return int
      */
     int getCh() const { return ch; };
+
+    /**
+     * @brief 
+     *  Transposes the image.
+     */
+    void transpose();
 };
 
 
