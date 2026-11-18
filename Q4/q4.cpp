@@ -106,6 +106,11 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
 // Node ID calculation based on x, y coords + width
 int id(int i, int j, int W) { return i * W + j; }
 
+// Sentinel node for row i, sitting just right of the last pixel (column W).
+// Needed because a row of W pixels needs W cuttable edges, but W nodes only give W-1.
+// Without it the last column can never be picked as the seam. IDs come after s (W*H) and t (W*H+1).
+int sentinel(int i, int W, int H) { return W * H + 2 + i; }
+
 // Reversion of Node ID, going back to a pixel
 std::tuple<int, int> reverse_id(int u, int W) {
     // int i = u / W;   // row
@@ -136,7 +141,7 @@ std::vector<std::vector<int>> adj;     // adj[u] = indices into edges struct for
 // but since that would shift up all the IDs in the image by 2, I would rather not confuse myself with the
 // shifting and instead always leave them consistently at W*H and W*H+1
 int s;                                 // source, a node connected by an inf-cap edge to first col's px in every row
-int t;                                 // sink, a node w an inf-cap edge from last col's px in every row
+int t;                                 // sink, a node w an inf-cap edge from every row's sentinel node (just right of the last col)
 
 const long long INF = LLONG_MAX / 4; // bigger than any possible seam cost
 
@@ -159,15 +164,25 @@ void build_edge_adj(const imgData& imd, const EnergyMap& em) {
 
     // clear the globals here
     edges.clear();
-    adj.assign(W * H + 2, {});
+    adj.assign(W * H + 2 + H, {});   // pixels + s + t + one sentinel node per row
 
     // 1. source edges:   s -> (i, 0)          for each row
     //                    (one infinite pipe from s to px in first col)
     for (int i = 0; i < H; i++) addEdge(s, id(i, 0, W), INF);
 
-    // 2. sink edges:     (i, W-1) -> t        for each row
-    //                    (one infinite pipe from the px in last col to sink node t)
-    for (int i = 0; i < H; i++) addEdge(id(i, W - 1, W), t, INF);
+    // 2. sink edges via a sentinel node k just right of the last column, for each row:
+    //      (i, W-1) -> k   cap = em[i][W-1]   (east edge of the last pixel, so it can be the seam too)
+    //      k -> (i, W-1)   cap = INF          (west edge, same role as step 4)
+    //      k -> t          cap = INF          (the sink now hangs off the sentinels)
+    //      k -> (i-1, W-1) and (i+1, W-1)  cap = INF   (NW/SW edges, same role as step 5)
+    for (int i = 0; i < H; i++) {
+        int k = sentinel(i, W, H);
+        addEdge(id(i, W - 1, W), k, em[i][W - 1]);
+        addEdge(k, id(i, W - 1, W), INF);
+        addEdge(k, t, INF);
+        if (i > 0)     addEdge(k, id(i - 1, W - 1, W), INF);
+        if (i + 1 < H) addEdge(k, id(i + 1, W - 1, W), INF);
+    }
 
     // 3. east edges:     (i,j) -> (i,j+1)     cap = em[i][j]
     // 4. west edges:     (i,j+1) -> (i,j)     cap = INF
@@ -253,7 +268,7 @@ void maxFlow(int V) {
 }
 
 std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
-    int W = imd.getWidth(), H = imd.getHeight(), V = W * H + 2;
+    int W = imd.getWidth(), H = imd.getHeight(), V = W * H + 2 + H;   // + H sentinel nodes
 
     std::cout << "calling maxflow\n";
     maxFlow(V);
@@ -288,7 +303,7 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
 // ./q4 ../img/content-aware-scale-cat.png 50 cat_h.png cat_energy.png h
 int main(int argc, char *argv[])
 {
-	std::cout << "hello world\n";
+	//std::cout << "hello world\n";
     //energy_map::test();
     //test_stb_included();
 
