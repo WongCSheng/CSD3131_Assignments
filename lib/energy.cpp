@@ -97,6 +97,16 @@ int generateEnergyValue(const imgData& imd, int x, int y)
     return dx+dy;
 }
 
+void imgData::transpose() {
+    std::vector<unsigned char> out(data.size());
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
+            for (int c = 0; c < ch; c++)
+                out[(x * h + y) * ch + c] = data[(y * w + x) * ch + c];
+    data = std::move(out);
+    std::swap(w, h);
+}
+
 void imgData::createMap(int width, int height, int chara, std::vector<unsigned char> & data_new) {
     //Assign values to the respective data member
     w = width;
