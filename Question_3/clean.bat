@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
 set "ROOT=%~dp0"
 set "BUILD_DIR=%ROOT%build"
@@ -22,6 +22,24 @@ if /i "%CALLER%"=="wslhost.exe" goto :from_wsl
 if /i "%CALLER%"=="powershell.exe" goto :from_ps
 if /i "%CALLER%"=="pwsh.exe"       goto :from_ps
 
+echo Rebuilding executable...
+
+echo Launched from CMD / Explorer / other (%CALLER%)
+if exist %BUILD_DIR% (
+    rmdir /s /q %BUILD_DIR%
+)
+if exist %DEPENDENCIES_DIR% (
+    rmdir /s /q %DEPENDENCIES_DIR%
+)
+if exist %EXE_PATH% (
+    del %EXE_PATH%
+)
+if exist %OUTPUT_DIR% (
+    rmdir /s /q %OUTPUT_DIR%
+)
+endlocal
+goto :end
+
 :from_wsl
 echo Detected WSL invocation. Cleaning up the build environment...
 make clean
@@ -35,7 +53,7 @@ if exist output (
     rmdir output /s /q
 )
 endlocal
-goto :eof
+goto :end
 
 :from_ps
 echo Detected PowerShell invocation. Cleaning up the build environment...
@@ -52,4 +70,7 @@ if exist %OUTPUT_DIR% (
     rmdir /s /q %OUTPUT_DIR%
 )
 endlocal
-goto :eof
+goto :end
+
+:end
+pause

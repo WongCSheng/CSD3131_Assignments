@@ -17,6 +17,7 @@
 
 #include "../lib/energy.h"
 
+// Forward Declaration
 cv::Mat computeEnergy(const cv::Mat& image);
 std::vector<int> FindGreedySeam(const cv::Mat& energy, bool orientation);
 cv::Mat removeSeam(const cv::Mat& image, const std::vector<int>& seam, bool orientation);
@@ -49,13 +50,16 @@ void onTrackbar(int pos, void* userdata)
  */
 void loadImages()
 {
-    std::filesystem::path image_Folder = std::filesystem::current_path().parent_path() / "img";
-    std::cout << "Image folder path: " << image_Folder << std::endl;
-    if(std::filesystem::is_empty(image_Folder))
+    std::filesystem::path image_Folder;
+    if(std::filesystem::current_path().string().find("build") != std::string::npos)
     {
-        std::cerr << "Image folder is empty. Please add images to the folder: " << image_Folder << std::endl;
-        exit(EXIT_FAILURE);
+        image_Folder = std::filesystem::current_path().parent_path().parent_path() / "img";
     }
+    else
+    {
+        image_Folder = std::filesystem::current_path().parent_path() / "img";
+    }
+    std::cout << "Image folder path: " << image_Folder << std::endl;
 
     for (const auto& entry : std::filesystem::directory_iterator(image_Folder))
     {
@@ -69,6 +73,14 @@ void loadImages()
     }
 }
 
+/**
+ * @brief Draws the seam thats to be removed
+ * 
+ * @param image 
+ * @param seams 
+ * @param orientation 
+ * @param color 
+ */
 void drawSeams(cv::Mat& image, const std::vector<int>& seams, bool orientation, cv::Vec3b color = cv::Vec3b(0, 255, 0))
 {
     int rows = image.rows;
@@ -90,6 +102,15 @@ void drawSeams(cv::Mat& image, const std::vector<int>& seams, bool orientation, 
     }
 }
 
+/**
+ * @brief Calculate and generate the images that is do be seam carved.
+ *      Removes the need to do on the spot calculations when the trackbar is moved, thus
+ *      reducing laggy-ness.
+ * 
+ * @param images 
+ * @param img 
+ * @param orientation 
+ */
 void precomputeImages(std::vector<cv::Mat>& images, const cv::Mat& img, bool orientation = true)
 {
     int maxSeams = orientation ? img.cols / 3 * 2 : img.rows / 3 * 2;
