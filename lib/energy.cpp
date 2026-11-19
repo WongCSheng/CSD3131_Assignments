@@ -113,7 +113,7 @@ void imgData::createMap(int width, int height, int chara, std::vector<unsigned c
     h = height;
     ch = chara;
     //copy each element to data 
-    for (int i = 0; i < data_new.size(); i++) {
+    for (int i = 0; i < static_cast<int>(data_new.size()); i++) {
         data.push_back(data_new[i]);
     }
 
