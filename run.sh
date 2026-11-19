@@ -7,3 +7,5 @@
 # also save the benchmark timings somewhere
 # should there also be an intermediary step to take note of the seams and output them
 # alongside outputting what the energy map looks like for all?
+
+echo off

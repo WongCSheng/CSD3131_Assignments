@@ -425,17 +425,19 @@ int main(int argc, char *argv[])
 
     for (int i=0; i < maxW; i++)
     {
-        
-        //Record the start time
-        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
         std::cout << "------------------------------ITERATION "<< i +1<<"-------------------------------------\n";
         std::cout << "this is iteration " << i +1 << " of " << maxW << std::endl;
+        
         // compute s and t
         // they can have arbitrary node IDs, but since 0 and 1 are taken, 
         // they take the first 2 out of bounds IDs (being W*H and W*H+1)
         //std::cout << "recomputing s and t's indices...\n";
         s = imd.getWidth() * imd.getHeight();
         t = s + 1;
+
+        //Record the start time
+        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
         // build the edge and adjacency lists
         //std::cout << "building edge and adjacency lists...\n";
@@ -492,5 +494,8 @@ int main(int argc, char *argv[])
     std::cout << "Time Elapsed Average: ";
     //Get the average of the total
     std::cout<< totalms / maxW << " ms"; // changed to maxW here instead of the arg because number of seams
+    std::cout << "Time Elapsed Total: ";
+    // print total
+    std::cout<< totalms << " ms";
     std::cout << std::endl;
 }

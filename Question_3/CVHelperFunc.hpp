@@ -17,6 +17,10 @@
 
 #include "../lib/energy.h"
 
+cv::Mat computeEnergy(const cv::Mat& image);
+std::vector<int> FindGreedySeam(const cv::Mat& energy, bool orientation);
+cv::Mat removeSeam(const cv::Mat& image, const std::vector<int>& seam, bool orientation);
+
 // Data structure for storing image using OpenCV
 struct OpenCVImageData
 {
@@ -39,6 +43,10 @@ void onTrackbar(int pos, void* userdata)
     *static_cast<int*>(userdata) = pos;
 }
 
+/**
+ * @brief Load images from the img folder
+ * 
+ */
 void loadImages()
 {
     std::filesystem::path image_Folder = std::filesystem::current_path().parent_path() / "img";
@@ -59,6 +67,42 @@ void loadImages()
             CVimages.push_back(imageData);
         }
     }
-};
+}
+
+void drawSeams(cv::Mat& image, const std::vector<int>& seams, bool orientation, cv::Vec3b color = cv::Vec3b(0, 255, 0))
+{
+    int rows = image.rows;
+    int cols = image.cols;
+
+    if(orientation) // Vertical
+    {
+        for(int i = 0; i < rows; ++i)
+        {
+            image.at<cv::Vec3b>(i, seams[i]) = color;
+        }
+    }
+    else // Horizontal
+    {
+        for(int i = 0; i < cols; ++i)
+        {
+            image.at<cv::Vec3b>(seams[i], i) = color;
+        }
+    }
+}
+
+void precomputeImages(std::vector<cv::Mat>& images, const cv::Mat& img, bool orientation = true)
+{
+    int maxSeams = orientation ? img.cols / 3 * 2 : img.rows / 3 * 2;
+    cv::Mat carvedImg = img.clone();
+
+    for(int i = 1; i <= maxSeams; ++i)
+    {
+        cv::Mat energy = computeEnergy(carvedImg);
+        std::vector<int> seam = FindGreedySeam(energy, orientation);
+        drawSeams(carvedImg, seam, orientation);
+        images.push_back(carvedImg.clone());
+        carvedImg = removeSeam(carvedImg, seam, orientation);
+    }
+}
 
 #endif // CVHELPERFUNC_HPP

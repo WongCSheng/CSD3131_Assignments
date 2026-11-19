@@ -35,22 +35,18 @@
  */
 cv::Mat computeEnergy(const cv::Mat& image)
 {
-    cv::Mat gray, gradX, gradY, absgradX, absgradY, energy;
+    cv::Mat gray, gaus, gradX, gradY, energy;
 
     // Convert to grayscale
-    cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
-    cv::GaussianBlur(gray, gray, cv::Size(3, 3), 0);
+    cv::GaussianBlur(image, gaus, cv::Size(3, 3), 0);
+    cv::cvtColor(gaus, gray, cv::COLOR_BGR2GRAY);
 
     // Compute gradients using Sobel operator
     cv::Sobel(gray, gradX, CV_64F, 1, 0);
     cv::Sobel(gray, gradY, CV_64F, 0, 1);
 
-    // Get the absolute values of the gradients
-    cv::convertScaleAbs(gradX, absgradX);
-    cv::convertScaleAbs(gradY, absgradY);
-
-    // Combine the gradients to get the energy map
-    cv::addWeighted(absgradX, 0.5, absgradY, 0.5, 0, energy);
+    // Add weight
+    cv::magnitude(gradX, gradY, energy);
 
     // Convert to double for further processing
     energy.convertTo(energy, CV_64F);
@@ -233,7 +229,7 @@ cv::Mat removeSeam(const cv::Mat& image, const std::vector<int>& seam, bool orie
  * @param numSeams 
  * @return cv::Mat 
  */
-cv::Mat carveWidth(const cv::Mat& image, int numSeams, bool orientation)
+cv::Mat benchmarkSeamCarving(const cv::Mat& image, int numSeams, bool orientation)
 {
     cv::Mat carvedImage = image.clone();
 
@@ -256,18 +252,12 @@ std::vector<cv::Mat> cachedImg(0);
 
 int main()
 {
-    // Create a window to display the image
-    cv::String windowName = "Image Viewer";
-    cv::namedWindow(windowName, cv::WindowFlags::WINDOW_NORMAL);
+    cv::String displayWindow = "Image Viewer"; // Display window name
 
     loadImages();
 
     int seamsToRemove = 0; // number of pixels to carve
     bool orientation = true; // true for vertical seam, false for horizontal seam
-
-    // Trackbar settings
-    cv::String trackbarName = "Seams to remove";
-    cv::createTrackbar(trackbarName, windowName, nullptr, 500, onTrackbar, &seamsToRemove);
 
     char entered_key = 0;
     std::cout << "Enter key: 'e' to load images, 'b' to benchmark greedy algorithm, 'q' to exit" << std::endl;
@@ -292,19 +282,21 @@ int main()
             int selectedImage = 1;
             std::cin >> selectedImage;
 
+            // Create a window and show image
+            cv::namedWindow(displayWindow, cv::WindowFlags::WINDOW_NORMAL);
             cv::Mat image = cv::imread(CVimages[selectedImage - 1].path);
-            cv::imshow(windowName, image);
+            cv::imshow(displayWindow, image);
 
             std::cout << "Selected orientation (1 for vertical, 0 for horizontal): ";
             std::cin >> orientation;
 
-            int maximumAllowedSeams = orientation ? image.cols : image.rows;
+            int maximumAllowedSeams = orientation ? (image.cols / 2) : (image.rows / 2); // Limit to half the size of the original image
             std::cout << "Enter number of seams to remove (Maximum number is " << maximumAllowedSeams << "): ";
             std::cin >> seamsToRemove;
 
             // Benchmark Greedy
             auto startGreedy = std::chrono::high_resolution_clock::now();
-            cv::Mat greedyResult = carveWidth(image, seamsToRemove, orientation);
+            cv::Mat greedyResult = benchmarkSeamCarving(image, seamsToRemove, orientation);
             auto endGreedy = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> greedyTime = endGreedy - startGreedy;
 
@@ -312,7 +304,7 @@ int main()
             std::cout << "Showing carved image using Greedy algorithm..." << std::endl;
 
             cv::imshow("Greedy Carved Image", greedyResult);
-            cv::imwrite("output/carved_greedy.jpg", greedyResult);
+            cv::imwrite("output/edited_" + CVimages[selectedImage - 1].name, greedyResult);
 
             std::cout << "Images saved as carved_greedy.jpg and carved_dp.jpg\n";
         }
@@ -343,27 +335,35 @@ int main()
                 std::cin >> orientation;
 
                 // Set the maximum number of seams to remove based on orientation
-                int maxSeams = orientation ? (image.cols - 10) : (image.rows - 10);
+                int maxSeams = orientation ? (image.cols / 3 * 2) : (image.rows / 3 * 2);
+                std::cout << "Maximum amount of allowed seams: " << maxSeams / 2 << std::endl;
                 int prevSeamsToRemove = -1;
-                cv::setTrackbarMax(trackbarName, windowName, maxSeams);
-                cv::setTrackbarPos(trackbarName, windowName, 0);
+
+                // Create a window and show image
+                cv::namedWindow(displayWindow, cv::WindowFlags::WINDOW_AUTOSIZE);
+
+                // Trackbar window
+                cv::String trackbarWindow = "Seam control";
+                cv::namedWindow(trackbarWindow, cv::WindowFlags::WINDOW_GUI_EXPANDED);
+                        
+                // Trackbar settings
+                cv::String trackbarName = "Seams to remove";
+                cv::createTrackbar(trackbarName, trackbarWindow, nullptr, 500, onTrackbar, &seamsToRemove);
+                cv::setTrackbarMax(trackbarName, trackbarWindow, maxSeams);
+                cv::setTrackbarPos(trackbarName, trackbarWindow, 0);
 
                 cv::Mat newImage = image.clone();
                 cachedImg.push_back(image.clone());
+
+                // Pre-compute all seams carving
+                precomputeImages(cachedImg, newImage, orientation);
                 std::cout << "Drag slider in window. Press 's' to save, 'q' to return.\n";
 
                 while(true)
                 {
-                    if(seamsToRemove > prevSeamsToRemove) // Remove seams
+                    if(seamsToRemove != prevSeamsToRemove) // Remove seams
                     {
-                        newImage = carveWidth(newImage, 1, orientation);
-                        cachedImg.push_back(newImage.clone());
-                        cv::imshow(windowName, cachedImg[seamsToRemove]);
-                        prevSeamsToRemove = seamsToRemove;
-                    }
-                    else if(seamsToRemove < prevSeamsToRemove) // Restore seams
-                    {
-                        cv::imshow(windowName, cachedImg[seamsToRemove]);
+                        cv::imshow(displayWindow, cachedImg[seamsToRemove]);
                         prevSeamsToRemove = seamsToRemove;
                     }
 
@@ -371,24 +371,23 @@ int main()
                     entered_key = cv::waitKey(10);
                     if (entered_key == 'q' || entered_key == 'Q')
                     {
+                        cachedImg.clear();
+                        cv::destroyWindow(displayWindow);
+                        cv::destroyWindow(trackbarWindow);
                         break;
-                    }
-                    else if (entered_key == 's') // save image
-                    {    
-                        cv::imwrite("output/output_tuned.jpg", newImage);
-                        std::cout << "Saved output_tuned.jpg\n";
                     }
                     // Exit if the user closes the window
-                    if (cv::getWindowProperty(windowName, cv::WND_PROP_VISIBLE) < 1)
+                    if (cv::getWindowProperty(displayWindow, cv::WND_PROP_VISIBLE) < 1
+                        || cv::getWindowProperty(trackbarWindow, cv::WND_PROP_VISIBLE) < 1)
                     {
-                        break;
+                        return 0;
                     }
                 }
             }
         }
         
         entered_key = -1; // Reset entered_key to avoid reloading the same image
-        std::cout << "Enter key, 'b' to benchmark greedy algorithm, 'q' to exit" << std::endl;
+        std::cout << "Enter key: 'e' to load images, 'b' to benchmark greedy algorithm, 'q' to exit" << std::endl;
     }
 
     cv::destroyAllWindows();
