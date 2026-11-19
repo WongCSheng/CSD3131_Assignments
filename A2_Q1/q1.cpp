@@ -119,6 +119,7 @@ std::vector<int> findSeam(const imgData& imd, const EnergyMap& em)
     return seampos;
 }
 
+// from le min
 void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std::string& path, imgData& gradient) {
     int w = imd.getWidth();
     int h = imd.getHeight();
@@ -173,13 +174,74 @@ void energyMapOutput(const imgData& imd, int max, const EnergyMap& em, const std
 
 }
 
-// main takes 3 args, first is path to image, 2nd is num of seams, 3 is output 4 is energy map output
+// seam visualizer from le min
+void addSeamsToAll(std::vector<std::vector<int>>& allseams, int h, std::vector<int>& seams) {
+    for (int i = 0; i < h; i++) {
+        allseams[i].push_back(seams[i]);
+    }
+}
+std::vector<int> getOriginal(std::vector<int>& seams, int w, int h, std::vector<std::vector<int>>& origin_map) {
+    std::vector<int> tmpVec;
+    for (int i = 0; i < h; i++) {
+        int c = seams[i];
+        int originalc = origin_map[i][c];
+        tmpVec.push_back(originalc);
+    }
+    return tmpVec;
+}
+void shrinkOriginMap(std::vector<std::vector<int>>& origin_map, std::vector<int>& seams, int w, int h) {
+    for (int i = 0; i < h; i++) {
+        int c = seams[i];
+        origin_map[i].erase(origin_map[i].begin() + c);
+    }
+}
+void seamOutput(const imgData& imd, const std::string& path, std::vector<std::vector<int>>& allseams) {
+    int w = imd.getWidth();
+    int h = imd.getHeight();
+
+    std::vector<unsigned char> greyscale_data = imd.getData();
+
+    std::vector<unsigned char> gradient_data;
+
+    for (int i = 0; i < h; i++)
+    {
+        std::vector<int> seampos = allseams[i]; // get the seam col data
+        for (int j = 0; j < w; j++)
+        {
+            //if value is not inside the vector, just get the greyscale value as it is not a seam
+            if (std::find(seampos.begin(), seampos.end(), j) == seampos.end()) {
+                size_t pos = (i * w + j) * imd.getCh();
+                gradient_data.push_back(greyscale_data[pos]);
+                gradient_data.push_back(greyscale_data[pos +1]);
+                gradient_data.push_back(greyscale_data[pos +2]);
+                
+                if (imd.getCh() == 4) { gradient_data.push_back(greyscale_data[pos+3]); } 
+                continue;
+            }
+            
+            //Set rgb to value for greyscale
+            gradient_data.push_back(255);
+            gradient_data.push_back(0);
+            gradient_data.push_back(0);
+            //Make alpha value to be 255 no matter
+            if (imd.getCh() == 4) { gradient_data.push_back(255); } // alpha channel is stored 0-255 like the rest
+        }
+    }
+    //Create an imgdata
+    imgData gradient;
+    //Set the values based on imd and the gradient data
+    gradient.createMap(imd.getWidth(), imd.getHeight(), imd.getCh(), gradient_data);
+    //Write out as image
+    gradient.writeImg(path);
+}
+
+// main takes 3 args, first is path to image, 2nd is num of seams, 3 is output folder path
 int main(int argc, char *argv[])
 {
 
-    if (argc < 5) {
+    if (argc < 4) {
         std::cout << "Not enough inputs." << std::endl;
-        std::cout << "Format: <img/path> <no of seams> <output/path> <gradient/path>" << std::endl;
+        std::cout << "Format: <img/path.png> <no of seams> <output/folder>" << std::endl;
         return 0;
     }
 
@@ -192,12 +254,31 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    std::string outPath = std::string{argv[4]} + "/out.png";
+    std::string gradientPath = std::string{argv[4]} + "/gradient.png";
+    std::string seamPath = std::string{argv[4]} + "/seams.png";
+
     int max =0;
     EnergyMap em = buildEnergyMap(imd, max);
     imgData seamimd{};
 
     // energy map is output in the original orientation
-    energyMapOutput(imd, max, em, argv[4], seamimd);
+    energyMapOutput(imd, max, em, gradientPath, seamimd);
+
+    //Create a origin map to store the original column indexes
+    std::vector<std::vector<int>> origin_map{};
+    origin_map.resize(imd.getHeight());
+    
+    //Create all seams to store all the seams for the output
+    std::vector<std::vector<int>> allseams{};
+    allseams.resize(imd.getHeight());
+    for (int r = 0; r < imd.getHeight(); r++) {
+        origin_map[r].resize(imd.getWidth());
+        for (int c = 0; c < imd.getWidth(); c++) {
+            origin_map[r][c] = c;
+        }
+            
+    }
 
     //start seam carving
     double totalduration{};
@@ -207,6 +288,12 @@ int main(int argc, char *argv[])
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
         std::vector<int> seam = findSeam(imd, em);
+
+        //le min code
+        std::vector<int> originalco = getOriginal(seam, imd.getWidth(), imd.getHeight(), origin_map);
+        addSeamsToAll(allseams, imd.getHeight(), originalco);
+        shrinkOriginMap(origin_map, seam, imd.getWidth(), imd.getHeight());
+
         imd.removeSeam(seam);
         em = buildEnergyMap(imd, max);
 
@@ -219,10 +306,11 @@ int main(int argc, char *argv[])
 
     std::cout << "Total time: " << totalduration << " msec" << std::endl;
 
+    //create seam image
+    seamOutput(seamimd, seamPath, allseams);
 
     //create output image
-    std::string imgout = argv[3];
-    imd.writeImg(imgout);
+    imd.writeImg(outPath);
 
 
     return 0;
