@@ -197,7 +197,7 @@ static void DrawFitted(const Texture& t)
 int main()
 {
     if (!glfwInit()) return 1;
-    GLFWwindow* win = glfwCreateWindow(1400, 850, "Seam Carving Viewer", nullptr, nullptr);
+    GLFWwindow* win = glfwCreateWindow(1680, 960, "Seam Carving Viewer", nullptr, nullptr);
     glfwMakeContextCurrent(win);
     glfwSwapInterval(1);
 
@@ -208,11 +208,11 @@ int main()
     ImGui_ImplOpenGL3_Init("#version 130");
 
     std::vector<std::string> images = LoadImages("img");
-    int  selected = -1;
-    int  seams = 50;
+    int selected = -1;
+    int seams = 50;
     bool vertical = true;
-    int  viewMode = 0; // 0 original, 1 result, 2 energy, 3 seams
-    int  activeAlgo = -1;
+    int viewMode = 0; // 0 original, 1 result, 2 energy, 3 seams
+    int activeAlgo = -1;
     double lastMs[3] = { -1, -1, -1 };
 
     Texture original;
@@ -220,17 +220,20 @@ int main()
     Job job;
     std::thread worker;
 
-    const ImGuiWindowFlags fixed = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                                   ImGuiWindowFlags_NoCollapse;
+    const ImGuiWindowFlags fixed = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
     while (!glfwWindowShouldClose(win))
     {
         glfwPollEvents();
 
-        // A job just finished: load its output images (must happen on the GL thread)
+        if(gl)
+
         if (job.finished.exchange(false))
         {
-            if (worker.joinable()) worker.join();
+            if (worker.joinable())
+            {
+                worker.join();
+            }
             if (activeAlgo >= 0)
             {
                 lastMs[activeAlgo] = job.ms;
@@ -252,7 +255,7 @@ int main()
         const float leftW = 240.f, rightW = 300.f;
         const float H = vp->WorkSize.y;
 
-        // ---- left: image list ----
+        // Left window, image list
         ImGui::SetNextWindowPos(vp->WorkPos);
         ImGui::SetNextWindowSize(ImVec2(leftW, H));
         ImGui::Begin("Images", nullptr, fixed);
@@ -264,21 +267,30 @@ int main()
                 selected = i;
                 FreeTexture(original);
                 original = LoadTexture(images[i]);
-                for (auto& r : results) FreeTexture(r);
+                for (auto& r : results)
+                {
+                    FreeTexture(r);
+                }
                 viewMode = 0;
             }
         }
-        if (images.empty()) ImGui::TextWrapped("No images found in ./img (run from the project root).");
+        if (images.empty())
+        {
+            ImGui::TextWrapped("No images found in ./img (run from the project root).");
+        }
         ImGui::End();
 
-        // ---- right: algorithm buttons ----
+        // Right window, question executable list
         ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + vp->WorkSize.x - rightW, vp->WorkPos.y));
         ImGui::SetNextWindowSize(ImVec2(rightW, H));
         ImGui::Begin("Algorithms", nullptr, fixed);
 
         ImGui::Checkbox("Vertical seams (Q3 only)", &vertical);
         int maxSeams = 1;
-        if (original.id) maxSeams = std::max(1, (vertical ? original.w : original.h) * 2 / 3);
+        if (original.id)
+        {
+            maxSeams = std::max(1, (vertical ? original.w : original.h) * 2 / 3);
+        }
         ImGui::InputInt("Seams to remove", &seams);
         seams = std::clamp(seams, 1, maxSeams);
         ImGui::Text("Max for this image: %d", maxSeams);
@@ -291,19 +303,27 @@ int main()
             {
                 activeAlgo = i;
                 job.running = true;
-                if (worker.joinable()) worker.join();
+                if (worker.joinable())
+                {
+                    worker.join();
+                }
                 worker = std::thread(RunAlgo, std::cref(kAlgos[i]), images[selected], seams, vertical, std::ref(job));
             }
             if (lastMs[i] >= 0) ImGui::Text("   last run: %.1f ms", lastMs[i]);
         }
         ImGui::EndDisabled();
 
-        if (job.running) ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "Running %s ...", kAlgos[activeAlgo].label);
+        if (job.running)
+        {
+            ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "Running %s ...", kAlgos[activeAlgo].label);
+        }
         else if (activeAlgo >= 0 && job.exitCode != 0)
+        {
             ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "Exit code %d - see %s\\log.txt", job.exitCode, kAlgos[activeAlgo].outDir);
+        }
         ImGui::End();
 
-        // ---- middle: viewer ----
+        // Image viewer
         ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + leftW, vp->WorkPos.y));
         ImGui::SetNextWindowSize(ImVec2(vp->WorkSize.x - leftW - rightW, H));
         ImGui::Begin("Viewer", nullptr, fixed);
@@ -325,7 +345,10 @@ int main()
         glfwSwapBuffers(win);
     }
 
-    if (worker.joinable()) worker.join();
+    if (worker.joinable())
+    {
+        worker.join();
+    }
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
