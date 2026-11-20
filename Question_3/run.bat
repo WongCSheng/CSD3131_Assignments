@@ -5,30 +5,9 @@ REM Set the path variables
 set "ROOT=%~dp0"
 set "EXE_PATH=%ROOT%build\Greedy_algo_Seam_Carving.exe"
 
-REM Import in dependencies
-if not exist "%ROOT%dependencies" (
-    mkdir "%ROOT%dependencies"
-    echo Downloading and building OpenCV 4.14.0 with MinGW...
-    git clone -c advice.detachedHead=false --depth 1 --branch 4.14.0 https://github.com/opencv/opencv.git "%ROOT%temp-opencv-src"
-
-    cmake -G "MinGW Makefiles" -S "%ROOT%temp-opencv-src" -B "%ROOT%temp-build" ^
-        -DCMAKE_INSTALL_PREFIX="%ROOT%dependencies" ^
-        -DWITH_QT=ON ^
-        -DBUILD_LIST=core,imgproc,imgcodecs,highgui ^
-        -DOPENCV_INCLUDE_INSTALL_PATH=include ^
-        -DOPENCV_LIB_INSTALL_PATH=lib ^
-        -DOPENCV_BIN_INSTALL_PATH=bin ^
-        -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ^
-        -DBUILD_opencv_apps=OFF -DBUILD_opencv_python3=OFF -DBUILD_opencv_python2=OFF -DBUILD_JAVA=OFF
-
-    cmake --build "%ROOT%temp-build" --config Release -j
-    cmake --install "%ROOT%temp-build" --config Release
-    rmdir /s /q "%ROOT%temp-opencv-src" "%ROOT%temp-build"
-)
-
 if not exist "%ROOT%build" mkdir "%ROOT%build"
 
-REM Get which platform is calling the batch file
+REM Get platform that is calling the batch file
 set "CALLER="
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command ^
     "$p = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $PID);" ^
@@ -39,12 +18,13 @@ for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command ^
     if not defined CALLER set "CALLER=%%P"
 )
 
+REM Detect which command line environment are called
 if /i "%CALLER%"=="wsl.exe"     goto :from_wsl
 if /i "%CALLER%"=="wslhost.exe" goto :from_wsl
 if /i "%CALLER%"=="powershell.exe" goto :from_ps
 if /i "%CALLER%"=="pwsh.exe"       goto :from_ps
 
-echo Launched from CMD / Explorer / other (%CALLER%)
+REM Launched from file explorer
 if not exist "%EXE_PATH%" (
     echo Executable not found. Compiling with g++...
     mkdir output
@@ -56,26 +36,18 @@ if not exist "%EXE_PATH%" (
         -L"%ROOT%dependencies" ^
         -lopencv_highgui4140 -lopencv_imgcodecs4140 -lopencv_imgproc4140 -lopencv_core4140 ^
         -o "%EXE_PATH%"
-    if exist "%ROOT%dependencies\bin\*.dll" (
-            xcopy /y /d /q "%ROOT%dependencies\bin\*.dll" "%ROOT%build\" >nul
-        )
-    if exist "%QT_DIR%\bin\windeployqt.exe" (
-    "%QT_DIR%\bin\windeployqt.exe" --no-translations "%ROOT%build\opencv_highgui4140.dll" >nul
-    ) else if exist "%QT_DIR%\bin\windeployqt6.exe" (
-        "%QT_DIR%\bin\windeployqt6.exe" --no-translations "%ROOT%build\opencv_highgui4140.dll" >nul
-    )
+    
     if errorlevel 1 (
         echo Compilation failed!
         exit /b 1
     )
+    REM Copy over dll to the build folder if not there
+    if exist "%ROOT%dependencies\bin\*.dll" (
+            xcopy /y /d /q "%ROOT%dependencies\bin\*.dll" "%ROOT%build\" >nul
+        )
 )
 
-set "PATH=%ROOT%dependencies\bin;%ROOT%dependencies;%PATH%"
-echo Running %EXE_PATH%...
-"%EXE_PATH%"
-endlocal
-goto :end
-
+REM if launched from WSL command-line tool
 :from_wsl
 echo Launched from WSL (%CALLER%)
 if not exist %EXE_PATH% (
@@ -89,6 +61,7 @@ if not exist %EXE_PATH% (
 endlocal
 goto :end
 
+REM if launched from PowerShell command-line tool
 :from_ps
 echo Launched from PowerShell (%CALLER%)
 
@@ -104,20 +77,16 @@ if not exist "%EXE_PATH%" (
         -lopencv_highgui4140 -lopencv_imgcodecs4140 -lopencv_imgproc4140 -lopencv_core4140 ^
         -o "%EXE_PATH%"
 
-    if exist "%ROOT%dependencies\bin\*.dll" (
-        xcopy /y /d /q "%ROOT%dependencies\bin\*.dll" "%ROOT%build\" >nul
-    )
-    if exist "%QT_DIR%\bin\windeployqt.exe" (
-    "%QT_DIR%\bin\windeployqt.exe" --no-translations "%ROOT%build\opencv_highgui4140.dll" >nul
-    ) else if exist "%QT_DIR%\bin\windeployqt6.exe" (
-        "%QT_DIR%\bin\windeployqt6.exe" --no-translations "%ROOT%build\opencv_highgui4140.dll" >nul
-    )
     if errorlevel 1 (
         echo Compilation failed!
         exit /b 1
     )
+    REM Copy over dll to the build folder if not there
+    if exist "%ROOT%dependencies\bin\*.dll" (
+        xcopy /y /d /q "%ROOT%dependencies\bin\*.dll" "%ROOT%build\" >nul
+    )
 )
-
+REM sets the dependency path
 set "PATH=%ROOT%dependencies\bin;%ROOT%dependencies;%PATH%"
 echo Running %EXE_PATH%...
 "%EXE_PATH%"

@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <filesystem>
+#include <numeric>
 #include <chrono>
 
 #include "../lib/energy.h"
@@ -124,6 +125,54 @@ void precomputeImages(std::vector<cv::Mat>& images, const cv::Mat& img, bool ori
         images.push_back(carvedImg.clone());
         carvedImg = removeSeam(carvedImg, seam, orientation);
     }
+}
+
+/**
+ * @brief For headless executable when running in main.cpp
+ * 
+ * @param argv 
+ * @return int 
+ */
+int runHeadless(char* argv[])
+{
+    cv::Mat image = cv::imread(argv[1]);
+    if (image.empty()) { std::cerr << "Failed to load " << argv[1] << "\n"; return 1; }
+
+    int seams = std::stoi(argv[2]);
+    std::string out = argv[3];
+    bool vertical = std::stoi(argv[4]) != 0;
+    std::filesystem::create_directories(out);
+
+    // Only deals with vertical to be in line with q1
+    cv::Mat work = vertical ? image.clone() : cv::Mat(image.t());
+
+    cv::Mat energy8;
+    cv::normalize(computeEnergy(work), energy8, 0, 255, cv::NORM_MINMAX, CV_8U);
+
+    cv::Mat seamVis = work.clone();
+    std::vector<std::vector<int>> origin(work.rows, std::vector<int>(work.cols));
+    for (auto& row : origin) std::iota(row.begin(), row.end(), 0);
+
+    auto t0 = std::chrono::steady_clock::now();
+    for (int i = 0; i < seams && work.cols > 1; ++i)
+    {
+        std::vector<int> seam = FindGreedySeam(computeEnergy(work), true);
+        for (int r = 0; r < work.rows; ++r)
+        {
+            seamVis.at<cv::Vec3b>(r, origin[r][seam[r]]) = cv::Vec3b(0, 255, 0);
+            origin[r].erase(origin[r].begin() + seam[r]);
+        }
+        work = removeSeam(work, seam, true);
+    }
+    double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+
+    if (!vertical) { work = work.t(); seamVis = seamVis.t(); energy8 = energy8.t(); }
+
+    cv::imwrite(out + "/out.png", work);
+    cv::imwrite(out + "/gradient.png", energy8);
+    cv::imwrite(out + "/seams.png", seamVis);
+    std::cout << "Total time: " << ms << " msec" << std::endl;
+    return 0;
 }
 
 #endif // CVHELPERFUNC_HPP

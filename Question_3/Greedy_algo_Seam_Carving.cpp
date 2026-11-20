@@ -250,8 +250,13 @@ std::vector<imgData> stbImages;
 // Container of removed seams
 std::vector<cv::Mat> cachedImg(0);
 
-int main()
+int main(int argc, char* argv[])
 {
+    if(argc >= 5)
+    {
+        return runHeadless(argv);
+    }
+
     cv::String displayWindow = "Image Viewer"; // Display window name
 
     loadImages();

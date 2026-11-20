@@ -5,6 +5,7 @@
 bin/
 lib/opencv
 lib/imgui
+lib/GLFW
 lib/stb
 lib/temp-build/
 lib/temp-opencv-src/

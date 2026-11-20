@@ -22,7 +22,7 @@ if /i "%CALLER%"=="wslhost.exe" goto :from_wsl
 if /i "%CALLER%"=="powershell.exe" goto :from_ps
 if /i "%CALLER%"=="pwsh.exe"       goto :from_ps
 
-echo Rebuilding executable...
+echo Cleaning files...
 
 echo Launched from CMD / Explorer / other (%CALLER%)
 if exist %BUILD_DIR% (
@@ -37,8 +37,14 @@ if exist %EXE_PATH% (
 if exist %OUTPUT_DIR% (
     rmdir /s /q %OUTPUT_DIR%
 )
+if exist %ROOT%temp-build (
+    rmdir /s /q "%ROOT%temp-build"
+)
+if exist %ROOT%temp-opencv-src (
+    rmdir /s /q "%ROOT%temp-opencv-src"
+)
 endlocal
-goto :end
+goto :eof
 
 :from_wsl
 echo Detected WSL invocation. Cleaning up the build environment...
@@ -52,8 +58,14 @@ if exist dependencies (
 if exist output (
     rmdir output /s /q
 )
+if exist temp-build (
+    rmdir temp-build /s /q
+)
+if exist temp-opencv-src (
+    rmdir temp-opencv-src /s /q
+)
 endlocal
-goto :end
+goto :eof
 
 :from_ps
 echo Detected PowerShell invocation. Cleaning up the build environment...
@@ -69,8 +81,11 @@ if exist %EXE_PATH% (
 if exist %OUTPUT_DIR% (
     rmdir /s /q %OUTPUT_DIR%
 )
+if exist %ROOT%temp-build (
+    rmdir /s /q "%ROOT%temp-build"
+)
+if exist %ROOT%temp-opencv-src (
+    rmdir /s /q "%ROOT%temp-opencv-src"
+)
 endlocal
-goto :end
-
-:end
-pause
+goto :eof

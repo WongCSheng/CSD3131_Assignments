@@ -1,6 +1,7 @@
 #include "../lib/energy.h"
 
 #include <algorithm>
+#include <string>
 #include <cmath>
 #include <chrono>
 
@@ -238,8 +239,7 @@ void seamOutput(const imgData& imd, const std::string& path, std::vector<std::ve
 // main takes 3 args, first is path to image, 2nd is num of seams, 3 is output folder path
 int main(int argc, char *argv[])
 {
-
-    if (argc < 4) {
+    if (argc < 5) {
         std::cout << "Not enough inputs." << std::endl;
         std::cout << "Format: <img/path.png> <no of seams> <output/folder>" << std::endl;
         return 0;

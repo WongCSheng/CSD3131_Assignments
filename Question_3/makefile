@@ -16,6 +16,7 @@ QT_DIR ?= ./dependencies/bin
 # Object files
 OBJS = $(SRCS:.cpp=.o)
 
+# Checks which OS environment it is called in
 ifeq ($(OS),Windows_NT)
     TARGET   := $(BUILD)/Greedy_algo_Seam_Carving.exe
     OBJS     := $(BUILD)/Greedy_algo_Seam_Carving.o
@@ -24,7 +25,7 @@ ifeq ($(OS),Windows_NT)
     LIBS     := -lopencv_highgui4140 -lopencv_imgcodecs4140 -lopencv_imgproc4140 -lopencv_core4140
     RUN_CMD  := $(BUILD)\Greedy_algo_Seam_Carving.exe
 else
-    # Native Linux / WSL build (requires libopencv-dev installed in WSL)
+    # Called from Linux environment
     TARGET   := $(BUILD)/Greedy_algo_Seam_Carving
     OBJS     := $(BUILD)/Greedy_algo_Seam_Carving.o
     INC_DIRS := -I.
@@ -57,7 +58,7 @@ else
 endif
 	$(CXX) $(CXXFLAGS) $(INC_DIRS) -c $< -o $@
 
-# Copy OpenCV (and Qt) DLLs into build/ so the .exe can be launched directly
+# Copy OpenCV (and Qt) DLLs into build folder so the .exe can be launched directly
 deploy_dlls: $(TARGET)
 ifeq ($(OS),Windows_NT)
   ifneq (,$(findstring sh,$(notdir $(SHELL))))
