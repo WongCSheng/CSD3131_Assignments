@@ -3,6 +3,7 @@
 
 # Ignore folders
 bin/
+output/
 lib/opencv
 lib/imgui
 lib/GLFW
