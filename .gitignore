@@ -2,7 +2,9 @@
 *.vs/
 
 # Ignore folders
-/Question_3/build/
-/Question_3/dependencies/
-/Question_3/temp-build/
-/Question_3/temp-opencv-src/
+bin/
+lib/opencv
+lib/imgui
+lib/stb
+lib/temp-build/
+lib/temp-opencv-src/
