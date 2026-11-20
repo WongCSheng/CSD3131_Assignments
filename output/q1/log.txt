@@ -1,2 +1,0 @@
-Not enough inputs.
-Format: <img/path.png> <no of seams> <output/folder>

@@ -9,9 +9,10 @@ output/
 /Question_3/dependencies/
 /Question_3/temp-build/
 /Question_3/temp-opencv-src/
-lib/opencv
-lib/imgui
-lib/GLFW
-lib/stb
+lib/opencv/
+lib/imgui/
+lib/GLFW/
+lib/stb/
 lib/temp-build/
 lib/temp-opencv-src/
+lib/temp-glfw-build/
