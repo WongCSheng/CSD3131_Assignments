@@ -335,7 +335,6 @@ void maxFlow(int V) {
 std::vector<int> findSeam(const imgData& imd, const EnergyMap& em) {
     int W = imd.getWidth(), H = imd.getHeight(), V = W * H + 2 + H;   // + H sentinel nodes
 
-    std::cout << "calling maxflow\n";
     maxFlow(V);
 
     // BFS from s over leftover capacity = source side (S) of the min cut.

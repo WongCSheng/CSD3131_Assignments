@@ -43,9 +43,15 @@ if not exist "%EXE_PATH%" (
     )
     REM Copy over dll to the build folder if not there
     if exist "%ROOT%dependencies\bin\*.dll" (
-            xcopy /y /d /q "%ROOT%dependencies\bin\*.dll" "%ROOT%build\" >nul
-        )
+        xcopy /y /d /q "%ROOT%dependencies\bin\*.dll" "%ROOT%build\" >nul
+    )
 )
+REM sets the dependency path
+set "PATH=%ROOT%dependencies\bin;%ROOT%dependencies;%PATH%"
+echo Running %EXE_PATH%...
+"%EXE_PATH%"
+endlocal
+goto :end
 
 REM if launched from WSL command-line tool
 :from_wsl

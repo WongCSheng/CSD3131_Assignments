@@ -239,7 +239,7 @@ void seamOutput(const imgData& imd, const std::string& path, std::vector<std::ve
 // main takes 3 args, first is path to image, 2nd is num of seams, 3 is output folder path
 int main(int argc, char *argv[])
 {
-    if (argc < 5) {
+    if (argc < 4) {
         std::cout << "Not enough inputs." << std::endl;
         std::cout << "Format: <img/path.png> <no of seams> <output/folder>" << std::endl;
         return 0;
@@ -254,9 +254,9 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    std::string outPath = std::string{argv[4]} + "/out.png";
-    std::string gradientPath = std::string{argv[4]} + "/gradient.png";
-    std::string seamPath = std::string{argv[4]} + "/seams.png";
+    std::string outPath = std::string{argv[3]} + "/out.png";
+    std::string gradientPath = std::string{argv[3]} + "/gradient.png";
+    std::string seamPath = std::string{argv[3]} + "/seams.png";
 
     int max =0;
     EnergyMap em = buildEnergyMap(imd, max);
@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
         em = buildEnergyMap(imd, max);
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+        double duration = std::chrono::duration<double, std::milli>(end - start).count();
 
         totalduration += duration;
         std::cout << "Seam " << i <<" (" <<duration <<" msec)" << std::endl;

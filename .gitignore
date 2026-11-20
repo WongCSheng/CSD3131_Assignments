@@ -4,11 +4,11 @@
 # Ignore folders
 bin/
 output/
-/Question_3/output
-/Question_3/build/
-/Question_3/dependencies/
-/Question_3/temp-build/
-/Question_3/temp-opencv-src/
+Question_3/output
+Question_3/build/
+Question_3/dependencies/
+Question_3/temp-build/
+Question_3/temp-opencv-src/
 lib/opencv/
 lib/imgui/
 lib/GLFW/
