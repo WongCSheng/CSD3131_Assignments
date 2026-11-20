@@ -8,17 +8,21 @@
  * 
  */
 
+ // Imgui include
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <glfw/glfw3.h>
 
+// STB include
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+// Window handle include
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
+// Standard library include
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
@@ -39,6 +43,7 @@
 
 namespace fs = std::filesystem;
 
+// Question answer's folders
 struct ProjectPaths
 {
     fs::path root;
@@ -47,6 +52,11 @@ struct ProjectPaths
     fs::path output;
 };
 
+/**
+ * @brief Set the answer folder paths
+ * 
+ * @return ProjectPaths 
+ */
 static ProjectPaths ResolveProjectPaths()
 {
     fs::path root = fs::current_path();
@@ -95,7 +105,10 @@ static Texture LoadTexture(const fs::path& path)
 {
     Texture t;
     unsigned char* data = stbi_load(path.string().c_str(), &t.w, &t.h, nullptr, 4);
-    if (!data) return t;
+    if (!data)
+    {
+        return t;
+    }
     glGenTextures(1, &t.id);
     glBindTexture(GL_TEXTURE_2D, t.id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -133,11 +146,16 @@ static std::vector<fs::path> LoadImages(const fs::path& folder)
     if (!fs::exists(folder)) return out;
     for (const auto& e : fs::directory_iterator(folder))
     {
-        if (!e.is_regular_file()) continue;
+        if (!e.is_regular_file())
+        {
+            continue;
+        }
         std::string ext = e.path().extension().string();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp")
+        {
             out.push_back(e.path());
+        }
     }
     std::sort(out.begin(), out.end());
     return out;
@@ -174,10 +192,10 @@ struct Job
     std::mutex procMutex;
     HANDLE     hProcess = nullptr;
 
-    int    lastCompletedAlgo = -1;
-    int    exitCode = 0;
+    int lastCompletedAlgo = -1;
+    int exitCode = 0;
     double runTimes[3] = { -1.0, -1.0, -1.0 };
-    bool   updatedMask[3] = { false, false, false };
+    bool updatedMask[3] = { false, false, false };
 };
 
 static std::string Q(const std::string& s) { return "\"" + s + "\""; }
@@ -200,15 +218,30 @@ static std::string BuildCommand(const ProjectPaths& paths, const Algo& a, const 
 
     switch (a.style)
     {
-    case Style::Dir:       cmd += Q(outDir.string()); break;
-    case Style::DirOrient: cmd += Q(outDir.string()) + (vertical ? " 1" : " 0"); break;
-    case Style::Q4:        cmd += Q((outDir / "out.png").string()) + " " +
-                                  Q((outDir / "gradient.png").string()) + " " +
-                                  Q((outDir / "seams.png").string()) + (vertical ? "" : " h"); break;
+        case Style::Dir:       cmd += Q(outDir.string()); break;
+        case Style::DirOrient: cmd += Q(outDir.string()) + (vertical ? " 1" : " 0"); break;
+        case Style::Q4:        cmd += Q((outDir / "out.png").string()) + " " +
+                                    Q((outDir / "gradient.png").string()) + " " +
+                                    Q((outDir / "seams.png").string()) + (vertical ? "" : " h"); break;
     }
     return cmd;
 }
 
+/**
+ * @brief Run the built executables of the answers.
+ *          Runs it in multiple threads.
+ * 
+ * @param paths 
+ * @param a 
+ * @param img 
+ * @param seams 
+ * @param vertical 
+ * @param job 
+ * @param outExitCode 
+ * @param outMs 
+ * @return true 
+ * @return false 
+ */
 static bool ExecuteAlgoProcess(const ProjectPaths& paths, const Algo& a, const fs::path& img,
                                int seams, bool vertical, Job& job, int& outExitCode, double& outMs)
 {
@@ -254,7 +287,9 @@ static bool ExecuteAlgoProcess(const ProjectPaths& paths, const Algo& a, const f
     {
         std::lock_guard<std::mutex> lk(job.procMutex);
         if (job.cancelRequested)
+        {
             TerminateProcess(pi.hProcess, 1);
+        }
         else
             job.hProcess = pi.hProcess;
     }
@@ -289,6 +324,17 @@ static bool ExecuteAlgoProcess(const ProjectPaths& paths, const Algo& a, const f
     return true;
 }
 
+/**
+ * @brief Save the results to a text file
+ * 
+ * @param filePath 
+ * @param img 
+ * @param seams 
+ * @param vertical 
+ * @param times 
+ * @param ran 
+ * @param cancelled 
+ */
 static void SaveRuntimesToFile(const fs::path& filePath, const fs::path& img, int seams, bool vertical,
                                const double times[3], const bool ran[3], bool cancelled)
 {
@@ -309,12 +355,31 @@ static void SaveRuntimesToFile(const fs::path& filePath, const fs::path& img, in
     for (int i = 0; i < 3; ++i)
     {
         out << "  " << kAlgos[i].label << ": ";
-        if (!ran[i])          out << "Not completed\n";
-        else if (times[i] < 0) out << "Failed / No timing found\n";
-        else                  out << times[i] << " ms\n";
+        if (!ran[i])
+        {
+            out << "Not completed\n";
+        }
+        else if (times[i] < 0)
+        {
+            out << "Failed / No timing found\n";
+        }
+        else
+        {
+            out << times[i] << " ms\n";
+        }
     }
 }
 
+/**
+ * @brief Run the selected algorithm on an image
+ * 
+ * @param paths 
+ * @param img 
+ * @param seams 
+ * @param vertical 
+ * @param singleIdx 
+ * @param job 
+ */
 static void RunJobs(ProjectPaths paths, fs::path img, int seams, bool vertical, int singleIdx, Job& job)
 {
     job.wasRunAll = (singleIdx < 0);
@@ -357,6 +422,11 @@ static void RunJobs(ProjectPaths paths, fs::path img, int seams, bool vertical, 
     job.finished = true;
 }
 
+/**
+ * @brief Stops a running algorithm
+ * 
+ * @param job 
+ */
 static void StopRunningJob(Job& job)
 {
     job.cancelRequested = true;
@@ -380,6 +450,13 @@ static void DrawFitted(const Texture& t)
     ImGui::Image((ImTextureID)(intptr_t)t.id, ImVec2(t.w * s, t.h * s));
 }
 
+/**
+ * @brief Draws a graph using imgui's graph library
+ * 
+ * @param pOpen 
+ * @param lastMs 
+ * @param reportPath 
+ */
 static void DrawRuntimeGraphWindow(bool* pOpen, const double lastMs[3], const fs::path& reportPath)
 {
     if (!*pOpen) return;
@@ -388,7 +465,12 @@ static void DrawRuntimeGraphWindow(bool* pOpen, const double lastMs[3], const fs
     {
         double maxMs = 1.0;
         for (int i = 0; i < 3; ++i)
-            if (lastMs[i] > maxMs) maxMs = lastMs[i];
+        {
+            if (lastMs[i] > maxMs)
+            {
+                maxMs = lastMs[i];
+            }
+        }
 
         ImVec2 canvasPos  = ImGui::GetCursorScreenPos();
         ImVec2 canvasSize = ImGui::GetContentRegionAvail();
@@ -398,7 +480,8 @@ static void DrawRuntimeGraphWindow(bool* pOpen, const double lastMs[3], const fs
         ImU32 bgCol   = IM_COL32(28, 30, 36, 255);
         ImU32 gridCol = IM_COL32(65, 70, 82, 255);
         ImU32 textCol = IM_COL32(230, 230, 230, 255);
-        ImU32 barCols[3] = {
+        ImU32 barCols[3] =
+        {
             IM_COL32(80, 160, 245, 255),
             IM_COL32(85, 200, 120, 255),
             IM_COL32(240, 145, 70, 255)
