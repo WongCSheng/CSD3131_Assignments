@@ -1,1 +1,1 @@
-Total time: 996.907 msec
+Total time: 72.2994 msec
