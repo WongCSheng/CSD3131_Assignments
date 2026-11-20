@@ -226,8 +226,6 @@ int main()
     {
         glfwPollEvents();
 
-        if(gl)
-
         if (job.finished.exchange(false))
         {
             if (worker.joinable())
